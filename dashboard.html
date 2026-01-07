@@ -380,10 +380,11 @@ function renderTab(tabId) {
 
 // Tab rendering functions
 
-function renderHomeDashboard() {
+async function renderHomeDashboard() {
     const currentUser = window.auth.getCurrentUser();
     const contentArea = document.getElementById('contentArea');
 
+    // Show loading state
     contentArea.innerHTML = `
         <div class="card">
             <h3>Welcome, ${currentUser.name}!</h3>
@@ -391,20 +392,20 @@ function renderHomeDashboard() {
 
             <div class="stats-grid" style="margin-top: 30px;">
                 <div class="stat-card">
-                    <div class="stat-value">0</div>
+                    <div class="stat-value">Loading...</div>
                     <div class="stat-label">Total Students</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">0</div>
+                    <div class="stat-value">Loading...</div>
                     <div class="stat-label">Total Teachers</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">0</div>
+                    <div class="stat-value">Loading...</div>
                     <div class="stat-label">Total Classes</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">0</div>
-                    <div class="stat-label">Pending Tasks</div>
+                    <div class="stat-value">Loading...</div>
+                    <div class="stat-label">Pending Issues</div>
                 </div>
             </div>
         </div>
@@ -417,6 +418,94 @@ function renderHomeDashboard() {
             </div>
         </div>
     `;
+
+    try {
+        const client = window.supabaseClient.getClient();
+
+        // Fetch statistics in parallel
+        const [studentsResult, teachersResult, classesResult, issuesResult] = await Promise.all([
+            client.from('students').select('id', { count: 'exact', head: true }),
+            client.from('teachers').select('id', { count: 'exact', head: true }),
+            client.from('classes').select('id', { count: 'exact', head: true }),
+            client.from('issues').select('id', { count: 'exact', head: true }).eq('status', 'pending')
+        ]);
+
+        const totalStudents = studentsResult.count || 0;
+        const totalTeachers = teachersResult.count || 0;
+        const totalClasses = classesResult.count || 0;
+        const pendingIssues = issuesResult.count || 0;
+
+        // Update with actual data
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>Welcome, ${currentUser.name}!</h3>
+                <p>You are logged in as <strong>${formatRole(currentUser.role)}</strong></p>
+
+                <div class="stats-grid" style="margin-top: 30px;">
+                    <div class="stat-card">
+                        <div class="stat-value">${totalStudents}</div>
+                        <div class="stat-label">Total Students</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${totalTeachers}</div>
+                        <div class="stat-label">Total Teachers</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${totalClasses}</div>
+                        <div class="stat-label">Total Classes</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${pendingIssues}</div>
+                        <div class="stat-label">Pending Issues</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Quick Actions</h3>
+                <div class="btn-group">
+                    <button class="btn-primary" onclick="renderTab('profile')">View Profile</button>
+                    <button class="btn-secondary" onclick="renderTab('changepassword')">Change Password</button>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error loading dashboard stats:', error);
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>Welcome, ${currentUser.name}!</h3>
+                <p>You are logged in as <strong>${formatRole(currentUser.role)}</strong></p>
+
+                <div class="stats-grid" style="margin-top: 30px;">
+                    <div class="stat-card">
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">Total Students</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">Total Teachers</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">Total Classes</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">Pending Issues</div>
+                    </div>
+                </div>
+                <p style="color: #e74c3c; margin-top: 20px;">Error loading statistics. Please refresh the page.</p>
+            </div>
+
+            <div class="card">
+                <h3>Quick Actions</h3>
+                <div class="btn-group">
+                    <button class="btn-primary" onclick="renderTab('profile')">View Profile</button>
+                    <button class="btn-secondary" onclick="renderTab('changepassword')">Change Password</button>
+                </div>
+            </div>
+        `;
+    }
 }
 
 function renderAttendance() {
