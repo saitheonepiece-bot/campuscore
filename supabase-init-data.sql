@@ -7,11 +7,7 @@
 -- ============================================
 INSERT INTO students (id, name, class, parent_id, status) VALUES
 (3180076, 'Kasula Ashwath', '8B', 'P3180076A', 'active'),
-(3180077, 'Srikar', '8B', 'P3180077A', 'active'),
-(3180078, 'Fatima', '8B', 'P3180078A', 'active'),
-(3240504, 'Sai Charan', '8B', 'P3240504A', 'active'),
-(3180079, 'Dhyuthi', '10A', 'P3180079A', 'active'),
-(3180080, 'Sricharan', '10A', 'P3180080A', 'active')
+(3240504, 'Sai Charan', '8B', 'P3240504A', 'active')
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================
@@ -19,11 +15,7 @@ ON CONFLICT (id) DO NOTHING;
 -- ============================================
 INSERT INTO parents (id, name, student_id, phone) VALUES
 ('P3180076A', 'Parent of Kasula', 3180076, '9876543210'),
-('P3180077A', 'Parent of Srikar', 3180077, '9876543211'),
-('P3180078A', 'Parent of Fatima', 3180078, '9876543212'),
-('P3240504A', 'Parent of Sai Charan', 3240504, '9876543213'),
-('P3180079A', 'Parent of Dhyuthi', 3180079, '9876543214'),
-('P3180080A', 'Parent of Sricharan', 3180080, '9876543215')
+('P3240504A', 'Parent of Sai Charan', 3240504, '9876543213')
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================
@@ -69,12 +61,8 @@ ON CONFLICT (id) DO NOTHING;
 -- ============================================
 INSERT INTO users (username, password, name, role) VALUES
 -- Parents
-('P3180076A', 'parent123', 'Ashwath Parent', 'parent'),
-('P3180077A', 'parent123', 'Srikar Parent', 'parent'),
-('P3180078A', 'parent123', 'Fatima Parent', 'parent'),
-('P3240504A', 'parent123', 'Sai Charan Parent', 'parent'),
-('P3180079A', 'parent123', 'Dhyuthi Parent', 'parent'),
-('P3180080A', 'parent123', 'Sricharan Parent', 'parent'),
+('P3180076A', 'parent123', 'Parent of Kasula', 'parent'),
+('P3240504A', 'parent123', 'Parent of Sai Charan', 'parent'),
 -- Teachers
 ('T001', 'teacher123', 'English Teacher', 'teacher'),
 ('T002', 'teacher123', 'Math Teacher', 'teacher'),
@@ -107,8 +95,8 @@ ON CONFLICT (date) DO NOTHING;
 -- Insert Classes
 -- ============================================
 INSERT INTO classes (name, grade, section, class_teacher_id, total_students) VALUES
-('8B', 8, 'B', 'CT8B', 4),
-('10A', 10, 'A', 'CT10A', 2)
+('8B', 8, 'B', 'CT8B', 2),
+('10A', 10, 'A', 'CT10A', 0)
 ON CONFLICT (name) DO NOTHING;
 
 -- ============================================
@@ -142,13 +130,6 @@ INSERT INTO attendance (student_id, date, period, type, behavior, marked_by) VAL
 (3180076, '2025-01-02', '1', 'present', 'excellent', 'T001'),
 (3180076, '2025-01-02', '2', 'present', 'good', 'T002'),
 (3180076, '2025-01-03', '1', 'present', 'good', 'T001'),
--- Srikar attendance
-(3180077, '2025-01-02', '1', 'present', 'good', 'T001'),
-(3180077, '2025-01-02', '2', 'late', 'good', 'T002'),
-(3180077, '2025-01-03', '1', 'absent', 'good', 'T001'),
--- Fatima attendance
-(3180078, '2025-01-02', '1', 'present', 'excellent', 'T001'),
-(3180078, '2025-01-02', '2', 'present', 'excellent', 'T002'),
 -- Sai Charan attendance
 (3240504, '2025-01-02', '1', 'present', 'good', 'T001'),
 (3240504, '2025-01-03', '1', 'present', 'good', 'T001')
@@ -182,11 +163,7 @@ ON CONFLICT DO NOTHING;
 INSERT INTO exam_results (student_id, exam_name, subject, marks, total_marks, grade, remarks) VALUES
 (3180076, 'Unit Test 1', 'Mathematics', 85, 100, 'A', 'Excellent performance'),
 (3180076, 'Unit Test 1', 'English', 78, 100, 'B+', 'Good work'),
-(3180076, 'Unit Test 1', 'Science', 92, 100, 'A+', 'Outstanding'),
-(3180077, 'Unit Test 1', 'Mathematics', 72, 100, 'B', 'Can improve'),
-(3180077, 'Unit Test 1', 'English', 68, 100, 'C+', 'Needs more focus'),
-(3180078, 'Unit Test 1', 'Mathematics', 95, 100, 'A+', 'Excellent'),
-(3180078, 'Unit Test 1', 'English', 88, 100, 'A', 'Very good')
+(3180076, 'Unit Test 1', 'Science', 92, 100, 'A+', 'Outstanding')
 ON CONFLICT DO NOTHING;
 
 -- ============================================

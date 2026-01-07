@@ -17,17 +17,17 @@ class Auth {
                 .single();
 
             if (error || !data) {
-                throw new Error('Invalid username or password');
+                throw new Error('Invalid User ID or password');
             }
 
-            // Store user info
+            // Store user info with auto-detected role from database
             this.currentUser = {
                 username: data.username,
                 name: data.name,
                 role: data.role
             };
 
-            // Save to sessionStorage
+            // Save to sessionStorage securely
             sessionStorage.setItem('currentUser', JSON.stringify(this.currentUser));
 
             return this.currentUser;
