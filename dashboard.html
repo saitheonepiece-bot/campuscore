@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusCore - Dashboard</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<div class="dashboard">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <!-- Logo Section -->
+        <div class="logo-section">
+            <div class="logo-icon">
+                <img src="logo.png" alt="CampusCore Logo" style="width: 55px; height: 55px; object-fit: contain;">
+            </div>
+            <div class="logo-text">
+                <h2>CAMPUSCORE</h2>
+                <p>Smart Campus</p>
+            </div>
+        </div>
+
+        <!-- User Block -->
+        <div class="user-block">
+            <div class="user-avatar" id="userAvatar">?</div>
+            <div class="user-name" id="userName">Loading...</div>
+            <div class="user-id" id="userId"></div>
+            <div class="user-role" id="userRole"></div>
+        </div>
+
+        <!-- Menu -->
+        <nav>
+            <ul class="menu" id="menuList">
+                <!-- Menu items will be dynamically generated -->
+            </ul>
+        </nav>
+
+        <!-- Logout Button -->
+        <button class="logout-btn" id="logoutBtn">
+            <span class="menu-icon">🚪</span>
+            <span>Logout</span>
+        </button>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header Banner -->
+        <div class="header-banner">
+            <h1>Delhi Public School, Nadergul</h1>
+            <p>Excellence in Education</p>
+        </div>
+
+        <!-- Content Area -->
+        <div class="content-area" id="contentArea">
+            <!-- Dynamic content will be loaded here -->
+        </div>
+    </main>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay hidden" id="loadingOverlay">
+    <div class="loading-spinner">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading...</div>
+    </div>
+</div>
+
+<!-- Load Supabase from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- Load application scripts -->
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/database.js"></script>
+<script src="assets/js/utils.js"></script>
+
+<script>
+// Global variables
+let currentTab = 'home';
+let initialized = false;
+
+// Menu items by role
+const menuItems = {
+    parent: [
+        { id: 'home', icon: '🏠', label: 'Dashboard' },
+        { id: 'attendance', icon: '📊', label: 'Attendance' },
+        { id: 'viewhomework', icon: '📝', label: 'Homework' },
+        { id: 'viewexamresults', icon: '📈', label: 'Exam Results' },
+        { id: 'viewreportcards', icon: '📄', label: 'Report Cards' },
+        { id: 'examschedule', icon: '📅', label: 'Exam Schedule' },
+        { id: 'timetable', icon: '🗓️', label: 'Timetable' },
+        { id: 'profile', icon: '👤', label: 'Profile' },
+        { id: 'changepassword', icon: '🔐', label: 'Change Password' }
+    ],
+    teacher: [
+        { id: 'home', icon: '🏠', label: 'Dashboard' },
+        { id: 'myduties', icon: '📋', label: 'My Duties' },
+        { id: 'markattendance', icon: '✅', label: 'Mark Attendance' },
+        { id: 'homework', icon: '📝', label: 'Homework' },
+        { id: 'examresults', icon: '📊', label: 'Exam Results' },
+        { id: 'uploadmarks', icon: '📈', label: 'Upload Marks' },
+        { id: 'myclasses', icon: '👥', label: 'My Classes' },
+        { id: 'teacherissues', icon: '⚠️', label: 'Issues' },
+        { id: 'timetable', icon: '🗓️', label: 'Timetable' },
+        { id: 'profile', icon: '👤', label: 'Profile' },
+        { id: 'changepassword', icon: '🔐', label: 'Change Password' }
+    ],
+    coordinator: [
+        { id: 'home', icon: '🏠', label: 'Dashboard' },
+        { id: 'coordissues', icon: '⚠️', label: 'Issues' },
+        { id: 'uploadexam', icon: '📋', label: 'Upload Exam' },
+        { id: 'classes', icon: '👥', label: 'Classes' },
+        { id: 'managetimetable', icon: '🗓️', label: 'Manage Timetable' },
+        { id: 'uploadcca', icon: '🎨', label: 'Upload CCA' },
+        { id: 'timetable', icon: '📅', label: 'View Timetable' },
+        { id: 'profile', icon: '👤', label: 'Profile' },
+        { id: 'changepassword', icon: '🔐', label: 'Change Password' }
+    ],
+    viceprincipal: [
+        { id: 'home', icon: '🏠', label: 'Dashboard' },
+        { id: 'appointteacher', icon: '👨‍🏫', label: 'Appoint Teacher' },
+        { id: 'assignduties', icon: '📋', label: 'Assign Duties' },
+        { id: 'vpissues', icon: '⚠️', label: 'Issues' },
+        { id: 'removestudent', icon: '🚫', label: 'Remove Student' },
+        { id: 'deletestudent', icon: '❌', label: 'Delete Student' },
+        { id: 'holidays', icon: '🎉', label: 'Holidays' },
+        { id: 'register', icon: '📝', label: 'Register' },
+        { id: 'analytics', icon: '📊', label: 'Analytics' },
+        { id: 'timetable', icon: '🗓️', label: 'Timetable' },
+        { id: 'profile', icon: '👤', label: 'Profile' },
+        { id: 'changepassword', icon: '🔐', label: 'Change Password' }
+    ],
+    superviceprincipal: [
+        { id: 'home', icon: '🏠', label: 'Dashboard' },
+        { id: 'appointteacher', icon: '👨‍🏫', label: 'Appoint Teacher' },
+        { id: 'assignduties', icon: '📋', label: 'Assign Duties' },
+        { id: 'svpissues', icon: '⚠️', label: 'Issues' },
+        { id: 'removestudent', icon: '🚫', label: 'Remove Student' },
+        { id: 'deletestudent', icon: '❌', label: 'Delete Student' },
+        { id: 'holidays', icon: '🎉', label: 'Holidays' },
+        { id: 'register', icon: '📝', label: 'Register' },
+        { id: 'analytics', icon: '📊', label: 'Analytics' },
+        { id: 'timetable', icon: '🗓️', label: 'Timetable' },
+        { id: 'profile', icon: '👤', label: 'Profile' },
+        { id: 'changepassword', icon: '🔐', label: 'Change Password' }
+    ],
+    classteacher: [
+        { id: 'home', icon: '🏠', label: 'Dashboard' },
+        { id: 'classdashboard', icon: '📊', label: 'Class Dashboard' },
+        { id: 'ctmarkattendance', icon: '✅', label: 'Mark Attendance' },
+        { id: 'reportcards', icon: '📄', label: 'Report Cards' },
+        { id: 'myduties', icon: '📋', label: 'My Duties' },
+        { id: 'homework', icon: '📝', label: 'Homework' },
+        { id: 'teacherissues', icon: '⚠️', label: 'Issues' },
+        { id: 'timetable', icon: '🗓️', label: 'Timetable' },
+        { id: 'profile', icon: '👤', label: 'Profile' },
+        { id: 'changepassword', icon: '🔐', label: 'Change Password' }
+    ]
+};
+
+// Initialize application
+async function initApp() {
+    if (initialized) return;
+
+    try {
+        showLoading();
+
+        // Initialize Supabase client
+        await window.supabaseClient.init();
+
+        // Initialize database
+        window.database.init();
+
+        // Check authentication
+        if (!window.auth.requireAuth()) {
+            return;
+        }
+
+        // Get current user
+        const currentUser = window.auth.getCurrentUser();
+
+        // Render user info
+        renderUserInfo(currentUser);
+
+        // Render menu
+        renderMenu(currentUser.role);
+
+        // Render default tab (home)
+        renderTab('home');
+
+        initialized = true;
+        hideLoading();
+    } catch (error) {
+        console.error('Initialization error:', error);
+        hideLoading();
+        showModal('Error', 'Failed to initialize application. Please refresh the page.', 'error');
+    }
+}
+
+// Render user info
+function renderUserInfo(user) {
+    const userAvatar = document.getElementById('userAvatar');
+    const userName = document.getElementById('userName');
+    const userId = document.getElementById('userId');
+    const userRole = document.getElementById('userRole');
+
+    // Generate avatar initials
+    const initials = user.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : '?';
+    userAvatar.textContent = initials;
+
+    userName.textContent = user.name || user.username;
+    userId.textContent = `@${user.username}`;
+    userRole.textContent = formatRole(user.role);
+}
+
+// Format role for display
+function formatRole(role) {
+    const roleMap = {
+        parent: 'Parent',
+        teacher: 'Teacher',
+        coordinator: 'Coordinator',
+        viceprincipal: 'Vice Principal',
+        superviceprincipal: 'Super Vice Principal',
+        classteacher: 'Class Teacher'
+    };
+    return roleMap[role] || role;
+}
+
+// Render menu based on role
+function renderMenu(role) {
+    const menuList = document.getElementById('menuList');
+    const items = menuItems[role] || menuItems.parent;
+
+    menuList.innerHTML = items.map(item => `
+        <li class="menu-item">
+            <button class="menu-link" data-tab="${item.id}">
+                <span class="menu-icon">${item.icon}</span>
+                <span>${item.label}</span>
+            </button>
+        </li>
+    `).join('');
+
+    // Add click event listeners
+    menuList.querySelectorAll('.menu-link').forEach(link => {
+        link.addEventListener('click', function() {
+            const tab = this.getAttribute('data-tab');
+            renderTab(tab);
+
+            // Update active state
+            menuList.querySelectorAll('.menu-link').forEach(l => l.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+
+    // Set home as active by default
+    const homeLink = menuList.querySelector('[data-tab="home"]');
+    if (homeLink) {
+        homeLink.classList.add('active');
+    }
+}
+
+// Render tab content
+function renderTab(tabId) {
+    currentTab = tabId;
+    const contentArea = document.getElementById('contentArea');
+
+    // Clear content
+    contentArea.innerHTML = '';
+
+    // Render tab-specific content
+    switch(tabId) {
+        case 'home':
+            renderHomeDashboard();
+            break;
+        case 'attendance':
+            renderAttendance();
+            break;
+        case 'viewhomework':
+            renderViewHomework();
+            break;
+        case 'viewexamresults':
+            renderViewExamResults();
+            break;
+        case 'viewreportcards':
+            renderViewReportCards();
+            break;
+        case 'examschedule':
+            renderExamSchedule();
+            break;
+        case 'timetable':
+            renderTimetable();
+            break;
+        case 'profile':
+            renderProfile();
+            break;
+        case 'changepassword':
+            renderChangePassword();
+            break;
+        // Teacher tabs
+        case 'myduties':
+            renderMyDuties();
+            break;
+        case 'markattendance':
+            renderMarkAttendance();
+            break;
+        case 'homework':
+            renderHomework();
+            break;
+        case 'examresults':
+            renderExamResults();
+            break;
+        case 'uploadmarks':
+            renderUploadMarks();
+            break;
+        case 'myclasses':
+            renderMyClasses();
+            break;
+        case 'teacherissues':
+            renderTeacherIssues();
+            break;
+        // Coordinator tabs
+        case 'coordissues':
+            renderCoordIssues();
+            break;
+        case 'uploadexam':
+            renderUploadExam();
+            break;
+        case 'classes':
+            renderClasses();
+            break;
+        case 'managetimetable':
+            renderManageTimetable();
+            break;
+        case 'uploadcca':
+            renderUploadCCA();
+            break;
+        // Vice Principal tabs
+        case 'appointteacher':
+            renderAppointTeacher();
+            break;
+        case 'assignduties':
+            renderAssignDuties();
+            break;
+        case 'vpissues':
+        case 'svpissues':
+            renderVPIssues();
+            break;
+        case 'removestudent':
+            renderRemoveStudent();
+            break;
+        case 'deletestudent':
+            renderDeleteStudent();
+            break;
+        case 'holidays':
+            renderHolidays();
+            break;
+        case 'register':
+            renderRegister();
+            break;
+        case 'analytics':
+            renderAnalytics();
+            break;
+        // Class Teacher tabs
+        case 'classdashboard':
+            renderClassDashboard();
+            break;
+        case 'ctmarkattendance':
+            renderCTMarkAttendance();
+            break;
+        case 'reportcards':
+            renderReportCards();
+            break;
+        default:
+            renderComingSoon(tabId);
+    }
+}
+
+// Tab rendering functions
+
+function renderHomeDashboard() {
+    const currentUser = window.auth.getCurrentUser();
+    const contentArea = document.getElementById('contentArea');
+
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>Welcome, ${currentUser.name}!</h3>
+            <p>You are logged in as <strong>${formatRole(currentUser.role)}</strong></p>
+
+            <div class="stats-grid" style="margin-top: 30px;">
+                <div class="stat-card">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">Total Students</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">Total Teachers</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">Total Classes</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">Pending Tasks</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Quick Actions</h3>
+            <div class="btn-group">
+                <button class="btn-primary" onclick="renderTab('profile')">View Profile</button>
+                <button class="btn-secondary" onclick="renderTab('changepassword')">Change Password</button>
+            </div>
+        </div>
+    `;
+}
+
+function renderAttendance() {
+    const contentArea = document.getElementById('contentArea');
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>Attendance Records</h3>
+            <div class="attendance-grid">
+                <div class="attendance-stat present">
+                    <div class="attendance-stat-number">0</div>
+                    <div class="attendance-stat-label">Present</div>
+                </div>
+                <div class="attendance-stat absent">
+                    <div class="attendance-stat-number">0</div>
+                    <div class="attendance-stat-label">Absent</div>
+                </div>
+                <div class="attendance-stat late">
+                    <div class="attendance-stat-number">0</div>
+                    <div class="attendance-stat-label">Late</div>
+                </div>
+            </div>
+            <p style="margin-top: 20px; color: #666;">Attendance data will be displayed here.</p>
+        </div>
+    `;
+}
+
+function renderViewHomework() {
+    renderComingSoon('Homework');
+}
+
+function renderViewExamResults() {
+    renderComingSoon('Exam Results');
+}
+
+function renderViewReportCards() {
+    renderComingSoon('Report Cards');
+}
+
+function renderExamSchedule() {
+    renderComingSoon('Exam Schedule');
+}
+
+function renderTimetable() {
+    const contentArea = document.getElementById('contentArea');
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>Class Timetable</h3>
+            <p style="color: #666;">Timetable will be displayed here.</p>
+        </div>
+    `;
+}
+
+function renderProfile() {
+    const currentUser = window.auth.getCurrentUser();
+    const contentArea = document.getElementById('contentArea');
+
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>Profile Information</h3>
+            <div class="form-section">
+                <div class="form-row">
+                    <div class="form-control">
+                        <label>Name</label>
+                        <input type="text" value="${currentUser.name || ''}" readonly>
+                    </div>
+                    <div class="form-control">
+                        <label>Username</label>
+                        <input type="text" value="${currentUser.username}" readonly>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-control">
+                        <label>Role</label>
+                        <input type="text" value="${formatRole(currentUser.role)}" readonly>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderChangePassword() {
+    const contentArea = document.getElementById('contentArea');
+
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>Change Password</h3>
+            <form id="changePasswordForm" class="form-section">
+                <div class="form-row">
+                    <div class="form-control">
+                        <label>Current Password</label>
+                        <input type="password" id="currentPassword" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-control">
+                        <label>New Password</label>
+                        <input type="password" id="newPassword" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-control">
+                        <label>Confirm New Password</label>
+                        <input type="password" id="confirmPassword" required>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button type="submit" class="btn-primary">Change Password</button>
+                    <button type="button" class="btn-secondary" onclick="renderTab('home')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    `;
+
+    // Add form submit handler
+    document.getElementById('changePasswordForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+
+        if (newPassword !== confirmPassword) {
+            showModal('Error', 'New passwords do not match', 'error');
+            return;
+        }
+
+        try {
+            showLoading();
+            await window.auth.changePassword(currentPassword, newPassword);
+            hideLoading();
+            showModal('Success', 'Password changed successfully', 'success');
+            renderTab('home');
+        } catch (error) {
+            hideLoading();
+            showModal('Error', error.message || 'Failed to change password', 'error');
+        }
+    });
+}
+
+// Teacher tab functions
+function renderMyDuties() {
+    renderComingSoon('My Duties');
+}
+
+function renderMarkAttendance() {
+    renderComingSoon('Mark Attendance');
+}
+
+function renderHomework() {
+    renderComingSoon('Homework Management');
+}
+
+function renderExamResults() {
+    renderComingSoon('Exam Results');
+}
+
+function renderUploadMarks() {
+    renderComingSoon('Upload Marks');
+}
+
+function renderMyClasses() {
+    renderComingSoon('My Classes');
+}
+
+function renderTeacherIssues() {
+    renderComingSoon('Teacher Issues');
+}
+
+// Coordinator tab functions
+function renderCoordIssues() {
+    renderComingSoon('Coordinator Issues');
+}
+
+function renderUploadExam() {
+    renderComingSoon('Upload Exam');
+}
+
+function renderClasses() {
+    renderComingSoon('Classes Management');
+}
+
+function renderManageTimetable() {
+    renderComingSoon('Manage Timetable');
+}
+
+function renderUploadCCA() {
+    renderComingSoon('Upload CCA');
+}
+
+// Vice Principal tab functions
+function renderAppointTeacher() {
+    renderComingSoon('Appoint Teacher');
+}
+
+function renderAssignDuties() {
+    renderComingSoon('Assign Duties');
+}
+
+function renderVPIssues() {
+    renderComingSoon('VP Issues');
+}
+
+function renderRemoveStudent() {
+    renderComingSoon('Remove Student');
+}
+
+function renderDeleteStudent() {
+    renderComingSoon('Delete Student');
+}
+
+function renderHolidays() {
+    renderComingSoon('Holidays Management');
+}
+
+function renderRegister() {
+    renderComingSoon('Register User');
+}
+
+function renderAnalytics() {
+    renderComingSoon('Analytics');
+}
+
+// Class Teacher tab functions
+function renderClassDashboard() {
+    renderComingSoon('Class Dashboard');
+}
+
+function renderCTMarkAttendance() {
+    renderComingSoon('Mark Attendance (Class Teacher)');
+}
+
+function renderReportCards() {
+    renderComingSoon('Report Cards');
+}
+
+// Generic coming soon function
+function renderComingSoon(feature) {
+    const contentArea = document.getElementById('contentArea');
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>${feature}</h3>
+            <div style="text-align: center; padding: 60px 20px;">
+                <div style="font-size: 72px; margin-bottom: 20px;">🚧</div>
+                <h4 style="color: var(--color-primary); margin-bottom: 10px;">Coming Soon</h4>
+                <p style="color: #666;">This feature is under development and will be available soon.</p>
+            </div>
+        </div>
+    `;
+}
+
+// Logout functionality
+document.getElementById('logoutBtn').addEventListener('click', function() {
+    showModal('Confirm Logout', 'Are you sure you want to logout?', 'warning', true, function() {
+        window.auth.logout();
+    });
+});
+
+// Initialize app on page load
+window.addEventListener('DOMContentLoaded', initApp);
+</script>
+
+</body>
+</html>
