@@ -697,36 +697,812 @@ function renderUploadCCA() {
 }
 
 // Vice Principal tab functions
-function renderAppointTeacher() {
-    renderComingSoon('Appoint Teacher');
+
+async function renderAppointTeacher() {
+    const contentArea = document.getElementById('contentArea');
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>👨‍🏫 Appoint Teacher</h3>
+            <form id="appointTeacherForm" style="max-width: 600px;">
+                <div class="form-group">
+                    <label for="teacherId">Teacher ID</label>
+                    <input type="text" id="teacherId" placeholder="e.g., T004" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="teacherName">Teacher Name</label>
+                    <input type="text" id="teacherName" placeholder="Enter full name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="subjects">Subjects (comma separated)</label>
+                    <input type="text" id="subjects" placeholder="e.g., Mathematics, Physics" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="classes">Classes (comma separated)</label>
+                    <input type="text" id="classes" placeholder="e.g., 8B, 10A" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="teacherPassword">Password</label>
+                    <input type="password" id="teacherPassword" placeholder="Set login password" required>
+                </div>
+
+                <button type="submit" class="btn-primary">Appoint Teacher</button>
+            </form>
+        </div>
+    `;
+
+    document.getElementById('appointTeacherForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const teacherId = document.getElementById('teacherId').value.trim();
+        const teacherName = document.getElementById('teacherName').value.trim();
+        const subjects = document.getElementById('subjects').value.trim();
+        const classes = document.getElementById('classes').value.trim();
+        const password = document.getElementById('teacherPassword').value;
+
+        try {
+            showLoading();
+            const client = window.supabaseClient.getClient();
+
+            // Insert teacher
+            const { error: teacherError } = await client
+                .from('teachers')
+                .insert([{
+                    id: teacherId,
+                    name: teacherName,
+                    subjects: subjects,
+                    classes: classes,
+                    status: 'active'
+                }]);
+
+            if (teacherError) throw teacherError;
+
+            // Create user account
+            const { error: userError } = await client
+                .from('users')
+                .insert([{
+                    username: teacherId,
+                    password: password,
+                    name: teacherName,
+                    role: 'teacher'
+                }]);
+
+            if (userError) throw userError;
+
+            hideLoading();
+            showModal('Success', `Teacher ${teacherName} appointed successfully!`, 'success');
+            document.getElementById('appointTeacherForm').reset();
+        } catch (error) {
+            hideLoading();
+            showModal('Error', error.message || 'Failed to appoint teacher', 'error');
+        }
+    });
 }
 
-function renderAssignDuties() {
-    renderComingSoon('Assign Duties');
+async function renderAssignDuties() {
+    const contentArea = document.getElementById('contentArea');
+
+    // Load teachers list
+    const client = window.supabaseClient.getClient();
+    const { data: teachers } = await client
+        .from('teachers')
+        .select('*')
+        .eq('status', 'active')
+        .order('name');
+
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>📋 Assign Duties</h3>
+            <form id="assignDutyForm" style="max-width: 600px;">
+                <div class="form-group">
+                    <label for="dutyTeacher">Select Teacher</label>
+                    <select id="dutyTeacher" required>
+                        <option value="">-- Select Teacher --</option>
+                        ${teachers.map(t => `<option value="${t.id}">${t.name} (${t.id})</option>`).join('')}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="dutyName">Duty Name</label>
+                    <input type="text" id="dutyName" placeholder="e.g., Morning Assembly, Exam Invigilation" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="dutyDate">Duty Date</label>
+                    <input type="date" id="dutyDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="dutyTime">Duty Time</label>
+                    <input type="text" id="dutyTime" placeholder="e.g., 8:00 AM - 9:00 AM" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="dutyLocation">Location</label>
+                    <input type="text" id="dutyLocation" placeholder="e.g., Main Hall, Class 8B">
+                </div>
+
+                <button type="submit" class="btn-primary">Assign Duty</button>
+            </form>
+
+            <div style="margin-top: 40px;">
+                <h4>Recent Duty Assignments</h4>
+                <div id="recentDuties">Loading...</div>
+            </div>
+        </div>
+    `;
+
+    // Load recent duties
+    const { data: duties } = await client
+        .from('teacher_duties')
+        .select('*')
+        .order('duty_date', { ascending: false })
+        .limit(10);
+
+    const recentDutiesDiv = document.getElementById('recentDuties');
+    if (duties && duties.length > 0) {
+        recentDutiesDiv.innerHTML = `
+            <table style="width: 100%; margin-top: 15px;">
+                <thead>
+                    <tr>
+                        <th>Teacher ID</th>
+                        <th>Duty</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Location</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${duties.map(d => `
+                        <tr>
+                            <td>${d.teacher_id}</td>
+                            <td>${d.duty_name}</td>
+                            <td>${new Date(d.duty_date).toLocaleDateString()}</td>
+                            <td>${d.duty_time}</td>
+                            <td>${d.location || 'N/A'}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    } else {
+        recentDutiesDiv.innerHTML = '<p>No duties assigned yet.</p>';
+    }
+
+    document.getElementById('assignDutyForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const user = window.auth.getCurrentUser();
+        const teacherId = document.getElementById('dutyTeacher').value;
+        const dutyName = document.getElementById('dutyName').value;
+        const dutyDate = document.getElementById('dutyDate').value;
+        const dutyTime = document.getElementById('dutyTime').value;
+        const location = document.getElementById('dutyLocation').value;
+
+        try {
+            showLoading();
+            const { error } = await client
+                .from('teacher_duties')
+                .insert([{
+                    teacher_id: teacherId,
+                    duty_name: dutyName,
+                    duty_date: dutyDate,
+                    duty_time: dutyTime,
+                    location: location,
+                    assigned_by: user.username
+                }]);
+
+            if (error) throw error;
+
+            hideLoading();
+            showModal('Success', 'Duty assigned successfully!', 'success');
+            renderAssignDuties(); // Refresh the page
+        } catch (error) {
+            hideLoading();
+            showModal('Error', error.message || 'Failed to assign duty', 'error');
+        }
+    });
 }
 
-function renderVPIssues() {
-    renderComingSoon('VP Issues');
+async function renderVPIssues() {
+    const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+
+    const { data: issues } = await client
+        .from('issues')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>⚠️ Issues Management</h3>
+
+            <div style="margin-bottom: 20px;">
+                <button class="btn-primary" onclick="showCreateIssueModal()">+ Create New Issue</button>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <button class="btn-filter" onclick="filterIssues('all')" id="filter-all">All (${issues.length})</button>
+                <button class="btn-filter" onclick="filterIssues('pending')" id="filter-pending">Pending (${issues.filter(i => i.status === 'pending').length})</button>
+                <button class="btn-filter" onclick="filterIssues('in_progress')" id="filter-in_progress">In Progress (${issues.filter(i => i.status === 'in_progress').length})</button>
+                <button class="btn-filter" onclick="filterIssues('resolved')" id="filter-resolved">Resolved (${issues.filter(i => i.status === 'resolved').length})</button>
+            </div>
+
+            <div id="issuesList">
+                ${issues.map(issue => `
+                    <div class="issue-card" data-status="${issue.status}">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div>
+                                <h4>${issue.title}</h4>
+                                <p style="color: #666; margin: 5px 0;">${issue.description || 'No description'}</p>
+                                <div style="margin-top: 10px;">
+                                    <span class="badge badge-${issue.priority}">${issue.priority}</span>
+                                    <span class="badge badge-${issue.status}">${issue.status}</span>
+                                    ${issue.reported_by ? `<span style="color: #666; font-size: 0.9em;">Reported by: ${issue.reported_by}</span>` : ''}
+                                </div>
+                            </div>
+                            <div>
+                                <select onchange="updateIssueStatus(${issue.id}, this.value)" style="padding: 5px;">
+                                    <option value="pending" ${issue.status === 'pending' ? 'selected' : ''}>Pending</option>
+                                    <option value="in_progress" ${issue.status === 'in_progress' ? 'selected' : ''}>In Progress</option>
+                                    <option value="resolved" ${issue.status === 'resolved' ? 'selected' : ''}>Resolved</option>
+                                    <option value="escalated" ${issue.status === 'escalated' ? 'selected' : ''}>Escalated</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+
+        <style>
+            .issue-card {
+                border: 1px solid #ddd;
+                padding: 15px;
+                margin-bottom: 10px;
+                border-radius: 8px;
+                background: white;
+            }
+            .badge {
+                display: inline-block;
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 0.85em;
+                margin-right: 8px;
+            }
+            .badge-low { background: #d4edda; color: #155724; }
+            .badge-normal { background: #cce5ff; color: #004085; }
+            .badge-high { background: #fff3cd; color: #856404; }
+            .badge-critical { background: #f8d7da; color: #721c24; }
+            .badge-pending { background: #fff3cd; color: #856404; }
+            .badge-in_progress { background: #cce5ff; color: #004085; }
+            .badge-resolved { background: #d4edda; color: #155724; }
+            .badge-escalated { background: #f8d7da; color: #721c24; }
+            .btn-filter {
+                padding: 8px 15px;
+                margin-right: 10px;
+                border: 1px solid #ddd;
+                background: white;
+                cursor: pointer;
+                border-radius: 4px;
+            }
+            .btn-filter.active {
+                background: var(--color-primary);
+                color: white;
+                border-color: var(--color-primary);
+            }
+        </style>
+    `;
 }
 
-function renderRemoveStudent() {
-    renderComingSoon('Remove Student');
+window.filterIssues = function(status) {
+    const issues = document.querySelectorAll('.issue-card');
+    document.querySelectorAll('.btn-filter').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(`filter-${status}`).classList.add('active');
+
+    issues.forEach(issue => {
+        if (status === 'all') {
+            issue.style.display = 'block';
+        } else {
+            issue.style.display = issue.dataset.status === status ? 'block' : 'none';
+        }
+    });
+};
+
+window.updateIssueStatus = async function(issueId, newStatus) {
+    try {
+        showLoading();
+        const { error } = await window.supabaseClient.getClient()
+            .from('issues')
+            .update({ status: newStatus })
+            .eq('id', issueId);
+
+        if (error) throw error;
+
+        hideLoading();
+        showModal('Success', 'Issue status updated!', 'success');
+        renderVPIssues();
+    } catch (error) {
+        hideLoading();
+        showModal('Error', error.message, 'error');
+    }
+};
+
+async function renderRemoveStudent() {
+    const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+
+    const { data: students } = await client
+        .from('students')
+        .select('*')
+        .eq('status', 'active')
+        .order('name');
+
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>🚫 Remove Student (Mark Inactive)</h3>
+            <p style="color: #e74c3c; margin-bottom: 20px;">⚠️ This will mark the student as inactive. Student data will be preserved.</p>
+
+            <table style="width: 100%; margin-top: 20px;">
+                <thead>
+                    <tr>
+                        <th>Student ID</th>
+                        <th>Name</th>
+                        <th>Class</th>
+                        <th>Parent ID</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${students.map(s => `
+                        <tr>
+                            <td>${s.id}</td>
+                            <td>${s.name}</td>
+                            <td>${s.class}</td>
+                            <td>${s.parent_id}</td>
+                            <td>
+                                <button class="btn-danger" onclick="removeStudent(${s.id}, '${s.name}')">Remove</button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
 }
 
-function renderDeleteStudent() {
-    renderComingSoon('Delete Student');
+window.removeStudent = async function(studentId, studentName) {
+    showModal('Confirm Remove', `Are you sure you want to remove ${studentName}? Student will be marked as inactive.`, 'warning', true, async function() {
+        try {
+            showLoading();
+            const { error } = await window.supabaseClient.getClient()
+                .from('students')
+                .update({ status: 'inactive' })
+                .eq('id', studentId);
+
+            if (error) throw error;
+
+            hideLoading();
+            showModal('Success', `${studentName} has been removed (marked inactive)`, 'success');
+            renderRemoveStudent();
+        } catch (error) {
+            hideLoading();
+            showModal('Error', error.message, 'error');
+        }
+    });
+};
+
+async function renderDeleteStudent() {
+    const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+
+    const { data: students } = await client
+        .from('students')
+        .select('*')
+        .eq('status', 'removed')
+        .order('name');
+
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>❌ Delete Student (Permanent)</h3>
+            <p style="color: #c0392b; margin-bottom: 20px; font-weight: bold;">⚠️ WARNING: This will PERMANENTLY delete the student. This action CANNOT be undone!</p>
+            <p style="margin-bottom: 20px;">Only students marked as "removed" can be permanently deleted.</p>
+
+            ${students.length > 0 ? `
+                <table style="width: 100%; margin-top: 20px;">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Class</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${students.map(s => `
+                            <tr>
+                                <td>${s.id}</td>
+                                <td>${s.name}</td>
+                                <td>${s.class}</td>
+                                <td><span class="badge badge-${s.status}">${s.status}</span></td>
+                                <td>
+                                    <button class="btn-danger" onclick="deleteStudentPermanent(${s.id}, '${s.name}')">Delete Permanently</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            ` : '<p>No students marked as "removed". Use "Remove Student" feature first to mark students for deletion.</p>'}
+        </div>
+    `;
 }
 
-function renderHolidays() {
-    renderComingSoon('Holidays Management');
+window.deleteStudentPermanent = async function(studentId, studentName) {
+    showModal('FINAL WARNING', `You are about to PERMANENTLY DELETE ${studentName}. This CANNOT be undone. Type "DELETE" to confirm.`, 'error', true, async function() {
+        try {
+            showLoading();
+            const { error } = await window.supabaseClient.getClient()
+                .from('students')
+                .delete()
+                .eq('id', studentId);
+
+            if (error) throw error;
+
+            hideLoading();
+            showModal('Success', `${studentName} has been permanently deleted`, 'success');
+            renderDeleteStudent();
+        } catch (error) {
+            hideLoading();
+            showModal('Error', error.message, 'error');
+        }
+    });
+};
+
+async function renderHolidays() {
+    const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+
+    const { data: holidays } = await client
+        .from('holidays')
+        .select('*')
+        .order('date', { ascending: true });
+
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>🎉 Holidays Management</h3>
+
+            <form id="addHolidayForm" style="max-width: 500px; margin-bottom: 30px;">
+                <h4>Add New Holiday</h4>
+                <div class="form-group">
+                    <label for="holidayDate">Date</label>
+                    <input type="date" id="holidayDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="holidayReason">Reason</label>
+                    <input type="text" id="holidayReason" placeholder="e.g., Independence Day" required>
+                </div>
+                <button type="submit" class="btn-primary">Add Holiday</button>
+            </form>
+
+            <h4>Upcoming Holidays</h4>
+            <table style="width: 100%; margin-top: 15px;">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Reason</th>
+                        <th>Day</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${holidays.map(h => {
+                        const date = new Date(h.date);
+                        const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+                        return `
+                            <tr>
+                                <td>${date.toLocaleDateString()}</td>
+                                <td>${h.reason}</td>
+                                <td>${dayName}</td>
+                                <td>
+                                    <button class="btn-danger" onclick="deleteHoliday('${h.date}')">Delete</button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    document.getElementById('addHolidayForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const date = document.getElementById('holidayDate').value;
+        const reason = document.getElementById('holidayReason').value;
+
+        try {
+            showLoading();
+            const { error } = await client
+                .from('holidays')
+                .insert([{ date, reason }]);
+
+            if (error) throw error;
+
+            hideLoading();
+            showModal('Success', 'Holiday added successfully!', 'success');
+            renderHolidays();
+        } catch (error) {
+            hideLoading();
+            showModal('Error', error.message, 'error');
+        }
+    });
 }
 
-function renderRegister() {
-    renderComingSoon('Register User');
+window.deleteHoliday = async function(date) {
+    showModal('Confirm', 'Delete this holiday?', 'warning', true, async function() {
+        try {
+            showLoading();
+            const { error } = await window.supabaseClient.getClient()
+                .from('holidays')
+                .delete()
+                .eq('date', date);
+
+            if (error) throw error;
+
+            hideLoading();
+            showModal('Success', 'Holiday deleted', 'success');
+            renderHolidays();
+        } catch (error) {
+            hideLoading();
+            showModal('Error', error.message, 'error');
+        }
+    });
+};
+
+async function renderRegister() {
+    const contentArea = document.getElementById('contentArea');
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>📝 Register New User</h3>
+
+            <div style="margin-bottom: 20px;">
+                <label>Select User Type:</label><br>
+                <button class="btn-filter" onclick="showRegisterForm('student')" id="reg-student">Student</button>
+                <button class="btn-filter" onclick="showRegisterForm('parent')" id="reg-parent">Parent</button>
+                <button class="btn-filter" onclick="showRegisterForm('teacher')" id="reg-teacher">Teacher</button>
+            </div>
+
+            <div id="registerFormContainer"></div>
+        </div>
+    `;
 }
 
-function renderAnalytics() {
-    renderComingSoon('Analytics');
+window.showRegisterForm = function(userType) {
+    document.querySelectorAll('.btn-filter').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(`reg-${userType}`).classList.add('active');
+
+    const container = document.getElementById('registerFormContainer');
+
+    if (userType === 'student') {
+        container.innerHTML = `
+            <form id="registerForm" style="max-width: 600px;">
+                <h4>Register Student</h4>
+                <div class="form-group">
+                    <label>Student ID</label>
+                    <input type="number" id="studentId" required>
+                </div>
+                <div class="form-group">
+                    <label>Student Name</label>
+                    <input type="text" id="studentName" required>
+                </div>
+                <div class="form-group">
+                    <label>Class</label>
+                    <input type="text" id="studentClass" placeholder="e.g., 8B" required>
+                </div>
+                <div class="form-group">
+                    <label>Parent ID</label>
+                    <input type="text" id="parentId" placeholder="e.g., P3180076A" required>
+                </div>
+                <button type="submit" class="btn-primary">Register Student</button>
+            </form>
+        `;
+
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const studentData = {
+                id: parseInt(document.getElementById('studentId').value),
+                name: document.getElementById('studentName').value,
+                class: document.getElementById('studentClass').value,
+                parent_id: document.getElementById('parentId').value,
+                status: 'active'
+            };
+
+            try {
+                showLoading();
+                const { error } = await window.supabaseClient.getClient()
+                    .from('students')
+                    .insert([studentData]);
+
+                if (error) throw error;
+
+                hideLoading();
+                showModal('Success', 'Student registered successfully!', 'success');
+                document.getElementById('registerForm').reset();
+            } catch (error) {
+                hideLoading();
+                showModal('Error', error.message, 'error');
+            }
+        });
+    } else if (userType === 'parent') {
+        container.innerHTML = `
+            <form id="registerForm" style="max-width: 600px;">
+                <h4>Register Parent</h4>
+                <div class="form-group">
+                    <label>Parent ID</label>
+                    <input type="text" id="parentId" placeholder="e.g., P3180076A" required>
+                </div>
+                <div class="form-group">
+                    <label>Parent Name</label>
+                    <input type="text" id="parentName" required>
+                </div>
+                <div class="form-group">
+                    <label>Student ID</label>
+                    <input type="number" id="studentId" required>
+                </div>
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" id="phone" placeholder="10-digit number">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="password" required>
+                </div>
+                <button type="submit" class="btn-primary">Register Parent</button>
+            </form>
+        `;
+
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const parentId = document.getElementById('parentId').value;
+            const parentName = document.getElementById('parentName').value;
+            const studentId = parseInt(document.getElementById('studentId').value);
+            const phone = document.getElementById('phone').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                showLoading();
+                const client = window.supabaseClient.getClient();
+
+                // Insert parent
+                const { error: parentError } = await client
+                    .from('parents')
+                    .insert([{
+                        id: parentId,
+                        name: parentName,
+                        student_id: studentId,
+                        phone: phone
+                    }]);
+
+                if (parentError) throw parentError;
+
+                // Create user account
+                const { error: userError } = await client
+                    .from('users')
+                    .insert([{
+                        username: parentId,
+                        password: password,
+                        name: parentName,
+                        role: 'parent'
+                    }]);
+
+                if (userError) throw userError;
+
+                hideLoading();
+                showModal('Success', 'Parent registered successfully!', 'success');
+                document.getElementById('registerForm').reset();
+            } catch (error) {
+                hideLoading();
+                showModal('Error', error.message, 'error');
+            }
+        });
+    }
+};
+
+async function renderAnalytics() {
+    const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+
+    // Fetch analytics data
+    const [studentsResult, teachersResult, classesResult, attendanceResult] = await Promise.all([
+        client.from('students').select('*'),
+        client.from('teachers').select('*'),
+        client.from('classes').select('*'),
+        client.from('attendance').select('*')
+    ]);
+
+    const totalStudents = studentsResult.data?.length || 0;
+    const activeStudents = studentsResult.data?.filter(s => s.status === 'active').length || 0;
+    const totalTeachers = teachersResult.data?.length || 0;
+    const totalClasses = classesResult.data?.length || 0;
+
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>📊 School Analytics</h3>
+
+            <div class="stats-grid" style="margin-top: 20px;">
+                <div class="stat-card">
+                    <div class="stat-value">${totalStudents}</div>
+                    <div class="stat-label">Total Students</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${activeStudents}</div>
+                    <div class="stat-label">Active Students</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${totalTeachers}</div>
+                    <div class="stat-label">Total Teachers</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${totalClasses}</div>
+                    <div class="stat-label">Total Classes</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 40px;">
+                <h4>Students by Class</h4>
+                <table style="width: 100%; margin-top: 15px;">
+                    <thead>
+                        <tr>
+                            <th>Class</th>
+                            <th>Total Students</th>
+                            <th>Class Teacher</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${classesResult.data?.map(c => `
+                            <tr>
+                                <td>${c.name}</td>
+                                <td>${c.total_students}</td>
+                                <td>${c.class_teacher_id || 'Not Assigned'}</td>
+                            </tr>
+                        `).join('') || '<tr><td colspan="3">No data</td></tr>'}
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="margin-top: 40px;">
+                <h4>Teacher Statistics</h4>
+                <table style="width: 100%; margin-top: 15px;">
+                    <thead>
+                        <tr>
+                            <th>Teacher ID</th>
+                            <th>Name</th>
+                            <th>Subjects</th>
+                            <th>Classes</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${teachersResult.data?.map(t => `
+                            <tr>
+                                <td>${t.id}</td>
+                                <td>${t.name}</td>
+                                <td>${t.subjects}</td>
+                                <td>${t.classes}</td>
+                                <td><span class="badge badge-${t.status}">${t.status}</span></td>
+                            </tr>
+                        `).join('') || '<tr><td colspan="5">No data</td></tr>'}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
 }
 
 // Class Teacher tab functions
