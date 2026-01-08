@@ -130,7 +130,7 @@ Use these credentials to test different roles:
 - **Username**: `C001` | **Password**: `coord123` (Coordinator Anitha)
 
 ### Vice Principal
-- **Username**: `VP001` | **Password**: `VP123` (Srishia Vice Principal)
+- **Username**: `VP001` | **Password**: `VP123` (Sirisha Vice Principal)
 
 ### Super Vice Principal
 - **Username**: `AP000123` | **Password**: `DPSSITE123` (Super Principal)

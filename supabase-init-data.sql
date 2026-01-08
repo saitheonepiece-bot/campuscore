@@ -46,7 +46,7 @@ ON CONFLICT (id) DO NOTHING;
 -- Insert Vice Principals
 -- ============================================
 INSERT INTO vice_principals (id, name, school, status) VALUES
-('VP001', 'Srishia Vice Principal', 'DPS Nadergul', 'active')
+('VP001', 'Sirisha Vice Principal', 'DPS Nadergul', 'active')
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================
@@ -70,7 +70,7 @@ INSERT INTO users (username, password, name, role) VALUES
 -- Coordinator
 ('C001', 'coord123', 'Coordinator Anitha', 'coordinator'),
 -- Vice Principal
-('VP001', 'VP123', 'Srishia Vice Principal', 'viceprincipal'),
+('VP001', 'VP123', 'Sirisha Vice Principal', 'viceprincipal'),
 -- Super Vice Principal
 ('AP000123', 'DPSSITE123', 'Super Principal', 'superviceprincipal'),
 -- Class Teachers

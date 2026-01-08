@@ -42,7 +42,7 @@ CREATE TABLE users (
 | P3180076A   | parent123  | Parent of Kasula      | parent        |
 | T001        | teacher123 | English Teacher       | teacher       |
 | CT8B        | CLASS123   | Class Teacher 8B      | classteacher  |
-| VP001       | VP123      | Srishia Vice Principal| viceprincipal |
+| VP001       | VP123      | Sirisha Vice Principal| viceprincipal |
 ```
 
 **Relationships:**
