@@ -183,7 +183,8 @@ CREATE TABLE IF NOT EXISTS report_cards (
 CREATE TABLE IF NOT EXISTS timetables (
     id BIGSERIAL PRIMARY KEY,
     class TEXT NOT NULL UNIQUE,
-    periods JSONB NOT NULL,
+    periods JSONB,
+    image_data TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

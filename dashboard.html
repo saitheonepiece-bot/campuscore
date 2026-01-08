@@ -152,10 +152,11 @@ const menuItems = {
         { id: 'classdashboard', icon: '📊', label: 'Class Dashboard' },
         { id: 'ctmarkattendance', icon: '✅', label: 'Mark Attendance' },
         { id: 'reportcards', icon: '📄', label: 'Report Cards' },
+        { id: 'ctmanagetimetable', icon: '📅', label: 'Upload Timetable' },
         { id: 'myduties', icon: '📋', label: 'My Duties' },
         { id: 'homework', icon: '📝', label: 'Homework' },
         { id: 'teacherissues', icon: '⚠️', label: 'Issues' },
-        { id: 'timetable', icon: '🗓️', label: 'Timetable' },
+        { id: 'timetable', icon: '🗓️', label: 'View Timetable' },
         { id: 'profile', icon: '👤', label: 'Profile' },
         { id: 'changepassword', icon: '🔐', label: 'Change Password' }
     ]
@@ -372,6 +373,9 @@ function renderTab(tabId) {
             break;
         case 'reportcards':
             renderReportCards();
+            break;
+        case 'ctmanagetimetable':
+            renderCTManageTimetable();
             break;
         default:
             renderComingSoon(tabId);
@@ -1166,7 +1170,12 @@ window.showClassTimetable = async function(className) {
     document.getElementById('timetableContent').innerHTML = `
         <div style="margin-top: 30px;">
             <h4>Timetable for ${className}</h4>
-            ${timetable && timetable.periods ? `
+            ${timetable && timetable.image_data ? `
+                <div style="margin-top: 20px; text-align: center;">
+                    <img src="${timetable.image_data}" alt="Timetable for ${className}"
+                         style="max-width: 100%; border: 2px solid #ddd; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                </div>
+            ` : timetable && timetable.periods ? `
                 <div style="overflow-x: auto; margin-top: 15px;">
                     <table style="width: 100%; min-width: 600px;">
                         <thead>
@@ -1200,33 +1209,207 @@ window.showClassTimetable = async function(className) {
     `;
 };
 
-function renderProfile() {
+async function renderProfile() {
     const currentUser = window.auth.getCurrentUser();
     const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+
+    let teacherData = null;
+    let classTeacherData = null;
+
+    // Fetch teacher-specific data if user is a teacher
+    if (currentUser.role === 'teacher') {
+        const { data } = await client
+            .from('teachers')
+            .select('*')
+            .eq('id', currentUser.username)
+            .maybeSingle();
+        teacherData = data;
+    }
+
+    // Fetch class teacher-specific data if user is a class teacher
+    if (currentUser.role === 'classteacher') {
+        const { data } = await client
+            .from('class_teachers')
+            .select('*')
+            .eq('id', currentUser.username)
+            .maybeSingle();
+        classTeacherData = data;
+    }
 
     contentArea.innerHTML = `
         <div class="card">
             <h3>Profile Information</h3>
-            <div class="form-section">
-                <div class="form-row">
-                    <div class="form-control">
-                        <label>Name</label>
-                        <input type="text" value="${currentUser.name || ''}" readonly>
+
+            <div id="profileViewMode">
+                <div class="form-section">
+                    <div class="form-row">
+                        <div class="form-control">
+                            <label>Name</label>
+                            <input type="text" value="${currentUser.name || ''}" readonly>
+                        </div>
+                        <div class="form-control">
+                            <label>Username</label>
+                            <input type="text" value="${currentUser.username}" readonly>
+                        </div>
                     </div>
-                    <div class="form-control">
-                        <label>Username</label>
-                        <input type="text" value="${currentUser.username}" readonly>
+                    <div class="form-row">
+                        <div class="form-control">
+                            <label>Role</label>
+                            <input type="text" value="${formatRole(currentUser.role)}" readonly>
+                        </div>
                     </div>
+                    ${teacherData ? `
+                        <div class="form-row">
+                            <div class="form-control">
+                                <label>Subjects Teaching</label>
+                                <input type="text" value="${teacherData.subjects || 'Not assigned'}" readonly>
+                            </div>
+                            <div class="form-control">
+                                <label>Classes Teaching</label>
+                                <input type="text" value="${teacherData.classes || 'Not assigned'}" readonly>
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${classTeacherData ? `
+                        <div class="form-row">
+                            <div class="form-control">
+                                <label>Assigned Class</label>
+                                <input type="text" value="${classTeacherData.class || 'Not assigned'}" readonly>
+                            </div>
+                        </div>
+                    ` : ''}
                 </div>
-                <div class="form-row">
-                    <div class="form-control">
-                        <label>Role</label>
-                        <input type="text" value="${formatRole(currentUser.role)}" readonly>
+                ${(currentUser.role === 'teacher' || currentUser.role === 'classteacher') ? `
+                    <div class="btn-group" style="margin-top: 20px;">
+                        <button type="button" class="btn-primary" onclick="toggleProfileEdit()">✏️ Edit Profile</button>
                     </div>
-                </div>
+                ` : ''}
+            </div>
+
+            <div id="profileEditMode" style="display: none;">
+                <form id="profileEditForm" class="form-section">
+                    <div class="form-row">
+                        <div class="form-control">
+                            <label>Name *</label>
+                            <input type="text" id="editName" value="${currentUser.name || ''}" required>
+                        </div>
+                        <div class="form-control">
+                            <label>Username</label>
+                            <input type="text" value="${currentUser.username}" readonly>
+                        </div>
+                    </div>
+                    ${teacherData ? `
+                        <div class="form-row">
+                            <div class="form-control">
+                                <label>Subjects Teaching (comma separated)</label>
+                                <input type="text" id="editSubjects" value="${teacherData.subjects || ''}" placeholder="e.g., Mathematics, Physics">
+                            </div>
+                            <div class="form-control">
+                                <label>Classes Teaching (comma separated) *</label>
+                                <input type="text" id="editClasses" value="${teacherData.classes || ''}" placeholder="e.g., 8B, 10A" required>
+                            </div>
+                        </div>
+                    ` : ''}
+                    <div class="btn-group" style="margin-top: 20px;">
+                        <button type="submit" class="btn-primary">💾 Save Changes</button>
+                        <button type="button" class="btn-secondary" onclick="toggleProfileEdit()">Cancel</button>
+                    </div>
+                </form>
             </div>
         </div>
     `;
+
+    // Add form submit handler
+    const editForm = document.getElementById('profileEditForm');
+    if (editForm) {
+        editForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await saveProfileChanges(teacherData, classTeacherData);
+        });
+    }
+}
+
+window.toggleProfileEdit = function() {
+    const viewMode = document.getElementById('profileViewMode');
+    const editMode = document.getElementById('profileEditMode');
+
+    if (viewMode.style.display === 'none') {
+        viewMode.style.display = 'block';
+        editMode.style.display = 'none';
+    } else {
+        viewMode.style.display = 'none';
+        editMode.style.display = 'block';
+    }
+};
+
+async function saveProfileChanges(teacherData, classTeacherData) {
+    const currentUser = window.auth.getCurrentUser();
+    const client = window.supabaseClient.getClient();
+
+    const newName = document.getElementById('editName').value.trim();
+
+    if (!newName) {
+        showModal('Error', 'Name is required', 'error');
+        return;
+    }
+
+    try {
+        showLoading();
+
+        // Update user table
+        const { error: userError } = await client
+            .from('users')
+            .update({ name: newName })
+            .eq('username', currentUser.username);
+
+        if (userError) throw new Error(`Failed to update user: ${userError.message}`);
+
+        // Update teacher-specific data
+        if (currentUser.role === 'teacher' && teacherData) {
+            const newSubjects = document.getElementById('editSubjects').value.trim();
+            const newClasses = document.getElementById('editClasses').value.trim();
+
+            if (!newClasses) {
+                throw new Error('Classes teaching is required');
+            }
+
+            const { error: teacherError } = await client
+                .from('teachers')
+                .update({
+                    name: newName,
+                    subjects: newSubjects,
+                    classes: newClasses
+                })
+                .eq('id', currentUser.username);
+
+            if (teacherError) throw new Error(`Failed to update teacher: ${teacherError.message}`);
+        }
+
+        // Update class teacher-specific data
+        if (currentUser.role === 'classteacher' && classTeacherData) {
+            const { error: ctError } = await client
+                .from('class_teachers')
+                .update({ name: newName })
+                .eq('id', currentUser.username);
+
+            if (ctError) throw new Error(`Failed to update class teacher: ${ctError.message}`);
+        }
+
+        // Update session storage
+        currentUser.name = newName;
+        sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+        hideLoading();
+        showModal('Success', 'Profile updated successfully!', 'success');
+
+        // Refresh profile display
+        renderProfile();
+        updateUserInfo(currentUser);
+    } catch (error) {
+        hideLoading();
+        showModal('Error', error.message || 'Failed to update profile', 'error');
+    }
 }
 
 function renderChangePassword() {
@@ -1381,23 +1564,47 @@ async function renderMyDuties() {
 async function renderMarkAttendance() {
     const contentArea = document.getElementById('contentArea');
     const client = window.supabaseClient.getClient();
+    const currentUser = window.auth.getCurrentUser();
 
-    // Get all classes
-    const { data: classes } = await client
+    // Get teacher's assigned classes
+    const { data: teacherInfo } = await client
+        .from('teachers')
+        .select('classes')
+        .eq('id', currentUser.username)
+        .maybeSingle();
+
+    let teacherClasses = [];
+    if (teacherInfo && teacherInfo.classes) {
+        // Parse comma-separated classes
+        teacherClasses = teacherInfo.classes.split(',').map(c => c.trim());
+    }
+
+    // Get all classes from database
+    const { data: allClasses } = await client
         .from('classes')
         .select('*')
         .order('name');
 
+    // Filter to only show classes assigned to this teacher
+    const classes = allClasses?.filter(c => teacherClasses.includes(c.name)) || [];
+
     contentArea.innerHTML = `
         <div class="card">
             <h3>✅ Mark Attendance</h3>
+            ${teacherClasses.length === 0 ? `
+                <p style="color: #e67e22; padding: 20px; background: #fff3cd; border-radius: 8px; margin-bottom: 20px;">
+                    ⚠️ You have no classes assigned yet. Please update your profile to add the classes you teach.
+                    <br><br>
+                    <button class="btn-primary" onclick="renderTab('profile')">Go to Profile</button>
+                </p>
+            ` : ''}
 
             <div style="margin-bottom: 30px;">
                 <div class="form-group">
-                    <label for="attendanceClass">Select Class</label>
-                    <select id="attendanceClass">
+                    <label for="attendanceClass">Select Class ${teacherClasses.length > 0 ? '(Your assigned classes only)' : ''}</label>
+                    <select id="attendanceClass" ${teacherClasses.length === 0 ? 'disabled' : ''}>
                         <option value="">-- Select Class --</option>
-                        ${classes?.map(c => `<option value="${c.name}">${c.name}</option>`).join('') || ''}
+                        ${classes.map(c => `<option value="${c.name}">${c.name}</option>`).join('')}
                     </select>
                 </div>
                 <div class="form-group">
@@ -2281,14 +2488,116 @@ window.loadTimetableForClass = async function() {
     document.getElementById('timetableContent').innerHTML = `
         <div style="margin-top: 30px;">
             <h4>Timetable for ${className}</h4>
-            ${timetable ? `
-                <p style="margin-top: 15px;">Timetable data (JSON format):</p>
-                <pre style="background: #f5f5f5; padding: 15px; border-radius: 5px; overflow: auto;">${JSON.stringify(timetable.periods, null, 2)}</pre>
-                <p style="margin-top: 15px; color: #666;">Note: Timetable editing interface can be implemented here.</p>
-            ` : '<p style="margin-top: 15px;">No timetable found for this class.</p>'}
+
+            ${timetable && timetable.image_data ? `
+                <div style="margin-top: 20px;">
+                    <h5>Current Timetable Image:</h5>
+                    <img src="${timetable.image_data}" alt="Timetable for ${className}"
+                         style="max-width: 100%; border: 2px solid #ddd; border-radius: 8px; margin-top: 10px;">
+                </div>
+            ` : '<p style="margin-top: 15px; color: #888;">No timetable image uploaded yet.</p>'}
+
+            <div style="margin-top: 30px; padding: 20px; background: #f9f9f9; border-radius: 8px;">
+                <h5>Upload New Timetable Image</h5>
+                <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                    Upload a clear image of the timetable. Supported formats: JPG, PNG, GIF (Max 5MB)
+                </p>
+                <form id="timetableImageForm">
+                    <input type="file" id="timetableImageInput" accept="image/*"
+                           style="margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; width: 100%;">
+                    <div id="imagePreview" style="margin-top: 15px; display: none;">
+                        <h6>Preview:</h6>
+                        <img id="previewImg" style="max-width: 100%; max-height: 400px; border: 2px solid #ddd; border-radius: 8px; margin-top: 10px;">
+                    </div>
+                    <button type="submit" class="btn-primary" style="margin-top: 15px;">📤 Upload Timetable</button>
+                </form>
+            </div>
         </div>
     `;
+
+    // Add image preview functionality
+    const imageInput = document.getElementById('timetableImageInput');
+    imageInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            // Check file size (5MB limit)
+            if (file.size > 5 * 1024 * 1024) {
+                showModal('Error', 'Image size must be less than 5MB', 'error');
+                imageInput.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                document.getElementById('previewImg').src = event.target.result;
+                document.getElementById('imagePreview').style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Add form submit handler
+    document.getElementById('timetableImageForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        await uploadTimetableImage(className, timetable);
+    });
 };
+
+async function uploadTimetableImage(className, existingTimetable) {
+    const imageInput = document.getElementById('timetableImageInput');
+    const file = imageInput.files[0];
+
+    if (!file) {
+        showModal('Error', 'Please select an image to upload', 'error');
+        return;
+    }
+
+    try {
+        showLoading();
+        const client = window.supabaseClient.getClient();
+
+        // Convert image to base64
+        const reader = new FileReader();
+        reader.onload = async function(event) {
+            const base64Image = event.target.result;
+
+            if (existingTimetable) {
+                // Update existing timetable
+                const { error } = await client
+                    .from('timetables')
+                    .update({ image_data: base64Image })
+                    .eq('class', className);
+
+                if (error) throw error;
+            } else {
+                // Create new timetable
+                const { error } = await client
+                    .from('timetables')
+                    .insert([{
+                        class: className,
+                        image_data: base64Image,
+                        periods: null
+                    }]);
+
+                if (error) throw error;
+            }
+
+            hideLoading();
+            showModal('Success', 'Timetable image uploaded successfully!', 'success');
+            loadTimetableForClass(); // Reload to show new image
+        };
+
+        reader.onerror = function() {
+            hideLoading();
+            showModal('Error', 'Failed to read image file', 'error');
+        };
+
+        reader.readAsDataURL(file);
+    } catch (error) {
+        hideLoading();
+        showModal('Error', error.message || 'Failed to upload timetable image', 'error');
+    }
+}
 
 async function renderUploadCCA() {
     const contentArea = document.getElementById('contentArea');
@@ -4061,6 +4370,161 @@ async function renderReportCards() {
                 <p style="color: #e74c3c;">Error loading report cards. Please try again.</p>
             </div>
         `;
+    }
+}
+
+async function renderCTManageTimetable() {
+    const contentArea = document.getElementById('contentArea');
+    const currentUser = window.auth.getCurrentUser();
+    const client = window.supabaseClient.getClient();
+
+    try {
+        // Get class teacher info
+        const { data: classTeacher } = await client
+            .from('class_teachers')
+            .select('*')
+            .eq('id', currentUser.username)
+            .maybeSingle();
+
+        if (!classTeacher) {
+            contentArea.innerHTML = `
+                <div class="card">
+                    <h3>📅 Upload Timetable</h3>
+                    <p style="color: #e74c3c;">Class teacher information not found.</p>
+                </div>
+            `;
+            return;
+        }
+
+        const className = classTeacher.class;
+
+        // Get existing timetable
+        const { data: timetable } = await client
+            .from('timetables')
+            .select('*')
+            .eq('class', className)
+            .maybeSingle();
+
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>📅 Upload Timetable for ${className}</h3>
+
+                ${timetable && timetable.image_data ? `
+                    <div style="margin-top: 20px;">
+                        <h5>Current Timetable:</h5>
+                        <img src="${timetable.image_data}" alt="Timetable for ${className}"
+                             style="max-width: 100%; border: 2px solid #ddd; border-radius: 8px; margin-top: 10px;">
+                    </div>
+                ` : '<p style="margin-top: 15px; color: #888;">No timetable uploaded yet.</p>'}
+
+                <div style="margin-top: 30px; padding: 20px; background: #f9f9f9; border-radius: 8px;">
+                    <h5>Upload New Timetable Image</h5>
+                    <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                        Upload a clear image of your class timetable. Supported formats: JPG, PNG, GIF (Max 5MB)
+                    </p>
+                    <form id="ctTimetableImageForm">
+                        <input type="file" id="ctTimetableImageInput" accept="image/*"
+                               style="margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; width: 100%;">
+                        <div id="ctImagePreview" style="margin-top: 15px; display: none;">
+                            <h6>Preview:</h6>
+                            <img id="ctPreviewImg" style="max-width: 100%; max-height: 400px; border: 2px solid #ddd; border-radius: 8px; margin-top: 10px;">
+                        </div>
+                        <button type="submit" class="btn-primary" style="margin-top: 15px;">📤 Upload Timetable</button>
+                    </form>
+                </div>
+            </div>
+        `;
+
+        // Add image preview functionality
+        const imageInput = document.getElementById('ctTimetableImageInput');
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Check file size (5MB limit)
+                if (file.size > 5 * 1024 * 1024) {
+                    showModal('Error', 'Image size must be less than 5MB', 'error');
+                    imageInput.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    document.getElementById('ctPreviewImg').src = event.target.result;
+                    document.getElementById('ctImagePreview').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Add form submit handler
+        document.getElementById('ctTimetableImageForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await uploadCTTimetableImage(className, timetable);
+        });
+    } catch (error) {
+        console.error('Error loading timetable upload page:', error);
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>📅 Upload Timetable</h3>
+                <p style="color: #e74c3c;">Error loading page. Please try again.</p>
+            </div>
+        `;
+    }
+}
+
+async function uploadCTTimetableImage(className, existingTimetable) {
+    const imageInput = document.getElementById('ctTimetableImageInput');
+    const file = imageInput.files[0];
+
+    if (!file) {
+        showModal('Error', 'Please select an image to upload', 'error');
+        return;
+    }
+
+    try {
+        showLoading();
+        const client = window.supabaseClient.getClient();
+
+        // Convert image to base64
+        const reader = new FileReader();
+        reader.onload = async function(event) {
+            const base64Image = event.target.result;
+
+            if (existingTimetable) {
+                // Update existing timetable
+                const { error } = await client
+                    .from('timetables')
+                    .update({ image_data: base64Image })
+                    .eq('class', className);
+
+                if (error) throw error;
+            } else {
+                // Create new timetable
+                const { error } = await client
+                    .from('timetables')
+                    .insert([{
+                        class: className,
+                        image_data: base64Image,
+                        periods: null
+                    }]);
+
+                if (error) throw error;
+            }
+
+            hideLoading();
+            showModal('Success', 'Timetable uploaded successfully!', 'success');
+            renderCTManageTimetable(); // Reload to show new image
+        };
+
+        reader.onerror = function() {
+            hideLoading();
+            showModal('Error', 'Failed to read image file', 'error');
+        };
+
+        reader.readAsDataURL(file);
+    } catch (error) {
+        hideLoading();
+        showModal('Error', error.message || 'Failed to upload timetable', 'error');
     }
 }
 
