@@ -1535,9 +1535,9 @@ function renderComingSoon(feature) {
 
 // Logout functionality
 document.getElementById('logoutBtn').addEventListener('click', function() {
-    showModal('Confirm Logout', 'Are you sure you want to logout?', 'warning', true, function() {
+    showConfirm('Confirm Logout', 'Are you sure you want to logout?', function() {
         window.auth.logout();
-    });
+    }, null, 'Logout', 'Cancel', false);
 });
 
 // Initialize app on page load
