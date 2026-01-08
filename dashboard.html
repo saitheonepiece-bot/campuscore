@@ -508,28 +508,125 @@ async function renderHomeDashboard() {
     }
 }
 
-function renderAttendance() {
+async function renderAttendance() {
     const contentArea = document.getElementById('contentArea');
-    contentArea.innerHTML = `
-        <div class="card">
-            <h3>Attendance Records</h3>
-            <div class="attendance-grid">
-                <div class="attendance-stat present">
-                    <div class="attendance-stat-number">0</div>
-                    <div class="attendance-stat-label">Present</div>
+    const currentUser = window.auth.getCurrentUser();
+    const client = window.supabaseClient.getClient();
+
+    try {
+        showLoading();
+
+        // Get parent's student
+        const { data: parent } = await client
+            .from('parents')
+            .select('student_id')
+            .eq('id', currentUser.username)
+            .maybeSingle();
+
+        if (!parent) {
+            hideLoading();
+            contentArea.innerHTML = `
+                <div class="card">
+                    <h3>📊 Attendance Records</h3>
+                    <p style="color: #e74c3c;">Parent information not found.</p>
                 </div>
-                <div class="attendance-stat absent">
-                    <div class="attendance-stat-number">0</div>
-                    <div class="attendance-stat-label">Absent</div>
+            `;
+            return;
+        }
+
+        // Get student info
+        const { data: student } = await client
+            .from('students')
+            .select('id, name, class')
+            .eq('id', parent.student_id)
+            .maybeSingle();
+
+        // Get attendance records for the student
+        const { data: attendanceRecords } = await client
+            .from('attendance')
+            .select('*')
+            .eq('student_id', parent.student_id)
+            .order('date', { ascending: false })
+            .limit(50);
+
+        // Calculate statistics
+        const total = attendanceRecords?.length || 0;
+        const present = attendanceRecords?.filter(a => a.status === 'present').length || 0;
+        const absent = attendanceRecords?.filter(a => a.status === 'absent').length || 0;
+        const late = attendanceRecords?.filter(a => a.status === 'late').length || 0;
+        const percentage = total > 0 ? ((present + late) / total * 100).toFixed(1) : 0;
+
+        hideLoading();
+
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>📊 Attendance Records - ${student?.name || 'Student'}</h3>
+                <p style="color: #666; margin-bottom: 20px;">Class: ${student?.class || 'N/A'}</p>
+
+                <div class="attendance-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px; color: white; text-align: center;">
+                        <div style="font-size: 32px; font-weight: bold;">${total}</div>
+                        <div style="opacity: 0.9;">Total Days</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%); padding: 20px; border-radius: 10px; color: white; text-align: center;">
+                        <div style="font-size: 32px; font-weight: bold;">${present}</div>
+                        <div style="opacity: 0.9;">Present</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 20px; border-radius: 10px; color: white; text-align: center;">
+                        <div style="font-size: 32px; font-weight: bold;">${absent}</div>
+                        <div style="opacity: 0.9;">Absent</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #FFA726 0%, #FB8C00 100%); padding: 20px; border-radius: 10px; color: white; text-align: center;">
+                        <div style="font-size: 32px; font-weight: bold;">${late}</div>
+                        <div style="opacity: 0.9;">Late</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #00BCD4 0%, #0097A7 100%); padding: 20px; border-radius: 10px; color: white; text-align: center;">
+                        <div style="font-size: 32px; font-weight: bold;">${percentage}%</div>
+                        <div style="opacity: 0.9;">Attendance Rate</div>
+                    </div>
                 </div>
-                <div class="attendance-stat late">
-                    <div class="attendance-stat-number">0</div>
-                    <div class="attendance-stat-label">Late</div>
-                </div>
+
+                <h4>Recent Attendance</h4>
+                ${attendanceRecords && attendanceRecords.length > 0 ? `
+                    <table style="width: 100%; margin-top: 15px;">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Period</th>
+                                <th>Status</th>
+                                <th>Behavior</th>
+                                <th>Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${attendanceRecords.map(a => {
+                                const date = new Date(a.date).toLocaleDateString();
+                                const statusColor = a.status === 'present' ? '#4CAF50' : a.status === 'absent' ? '#f44336' : '#FF9800';
+                                return `
+                                    <tr>
+                                        <td>${date}</td>
+                                        <td>Period ${a.period}</td>
+                                        <td><span class="badge" style="background: ${statusColor};">${a.status.toUpperCase()}</span></td>
+                                        <td>${a.behavior || 'N/A'}</td>
+                                        <td>${a.remarks || '-'}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                ` : '<p style="margin-top: 15px; color: #666;">No attendance records found.</p>'}
             </div>
-            <p style="margin-top: 20px; color: #666;">Attendance data will be displayed here.</p>
-        </div>
-    `;
+        `;
+    } catch (error) {
+        hideLoading();
+        console.error('Error loading attendance:', error);
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>📊 Attendance Records</h3>
+                <p style="color: #e74c3c;">Error loading attendance data. Please try again.</p>
+            </div>
+        `;
+    }
 }
 
 async function renderViewHomework() {
@@ -921,15 +1018,187 @@ async function renderExamSchedule() {
     }
 }
 
-function renderTimetable() {
+async function renderTimetable() {
     const contentArea = document.getElementById('contentArea');
-    contentArea.innerHTML = `
-        <div class="card">
-            <h3>Class Timetable</h3>
-            <p style="color: #666;">Timetable will be displayed here.</p>
+    const currentUser = window.auth.getCurrentUser();
+    const client = window.supabaseClient.getClient();
+
+    try {
+        showLoading();
+
+        let className = '';
+
+        // Determine the class based on user role
+        if (currentUser.role === 'parent') {
+            // Get parent's student class
+            const { data: parent } = await client
+                .from('parents')
+                .select('student_id')
+                .eq('id', currentUser.username)
+                .maybeSingle();
+
+            if (parent) {
+                const { data: student } = await client
+                    .from('students')
+                    .select('class')
+                    .eq('id', parent.student_id)
+                    .maybeSingle();
+                className = student?.class || '';
+            }
+        } else if (currentUser.role === 'classteacher') {
+            // Get class teacher's class
+            const { data: classTeacher } = await client
+                .from('class_teachers')
+                .select('class')
+                .eq('id', currentUser.username)
+                .maybeSingle();
+            className = classTeacher?.class || '';
+        } else if (currentUser.role === 'teacher') {
+            // For teachers, get all classes
+            const { data: classes } = await client
+                .from('classes')
+                .select('name')
+                .order('name');
+
+            hideLoading();
+
+            contentArea.innerHTML = `
+                <div class="card">
+                    <h3>🗓️ Class Timetable</h3>
+                    <p style="margin-bottom: 20px; color: #666;">Select a class to view its timetable</p>
+
+                    <div class="form-group" style="max-width: 300px;">
+                        <label>Select Class</label>
+                        <select id="classSelect" class="form-control" onchange="showClassTimetable(this.value)">
+                            <option value="">-- Select Class --</option>
+                            ${classes?.map(c => `<option value="${c.name}">${c.name}</option>`).join('') || ''}
+                        </select>
+                    </div>
+
+                    <div id="timetableContent"></div>
+                </div>
+            `;
+            return;
+        }
+
+        // Fetch timetable for the class
+        const { data: timetable } = await client
+            .from('timetables')
+            .select('*')
+            .eq('class', className)
+            .maybeSingle();
+
+        hideLoading();
+
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>🗓️ Class Timetable</h3>
+                <p style="margin-bottom: 20px; color: #666;">Class: ${className}</p>
+
+                ${timetable && timetable.periods ? `
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; min-width: 600px;">
+                            <thead>
+                                <tr>
+                                    <th>Period</th>
+                                    <th>Monday</th>
+                                    <th>Tuesday</th>
+                                    <th>Wednesday</th>
+                                    <th>Thursday</th>
+                                    <th>Friday</th>
+                                    <th>Saturday</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${Object.keys(timetable.periods || {}).map(period => `
+                                    <tr>
+                                        <td><strong>${period}</strong></td>
+                                        <td>${timetable.periods[period].monday || '-'}</td>
+                                        <td>${timetable.periods[period].tuesday || '-'}</td>
+                                        <td>${timetable.periods[period].wednesday || '-'}</td>
+                                        <td>${timetable.periods[period].thursday || '-'}</td>
+                                        <td>${timetable.periods[period].friday || '-'}</td>
+                                        <td>${timetable.periods[period].saturday || '-'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div style="margin-top: 30px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+                        <h4 style="margin-bottom: 10px;">📚 Notes</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #666;">
+                            <li>School timings: 8:00 AM - 3:30 PM</li>
+                            <li>Lunch break: 12:30 PM - 1:15 PM</li>
+                            <li>Each period: 45 minutes</li>
+                        </ul>
+                    </div>
+                ` : '<p style="margin-top: 15px; color: #666;">No timetable found for this class. Please contact your coordinator.</p>'}
+            </div>
+        `;
+    } catch (error) {
+        hideLoading();
+        console.error('Error loading timetable:', error);
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>🗓️ Class Timetable</h3>
+                <p style="color: #e74c3c;">Error loading timetable. Please try again.</p>
+            </div>
+        `;
+    }
+}
+
+// Function to show timetable for a selected class (for teachers)
+window.showClassTimetable = async function(className) {
+    if (!className) {
+        document.getElementById('timetableContent').innerHTML = '';
+        return;
+    }
+
+    const client = window.supabaseClient.getClient();
+
+    const { data: timetable } = await client
+        .from('timetables')
+        .select('*')
+        .eq('class', className)
+        .maybeSingle();
+
+    document.getElementById('timetableContent').innerHTML = `
+        <div style="margin-top: 30px;">
+            <h4>Timetable for ${className}</h4>
+            ${timetable && timetable.periods ? `
+                <div style="overflow-x: auto; margin-top: 15px;">
+                    <table style="width: 100%; min-width: 600px;">
+                        <thead>
+                            <tr>
+                                <th>Period</th>
+                                <th>Monday</th>
+                                <th>Tuesday</th>
+                                <th>Wednesday</th>
+                                <th>Thursday</th>
+                                <th>Friday</th>
+                                <th>Saturday</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${Object.keys(timetable.periods || {}).map(period => `
+                                <tr>
+                                    <td><strong>${period}</strong></td>
+                                    <td>${timetable.periods[period].monday || '-'}</td>
+                                    <td>${timetable.periods[period].tuesday || '-'}</td>
+                                    <td>${timetable.periods[period].wednesday || '-'}</td>
+                                    <td>${timetable.periods[period].thursday || '-'}</td>
+                                    <td>${timetable.periods[period].friday || '-'}</td>
+                                    <td>${timetable.periods[period].saturday || '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            ` : '<p style="margin-top: 15px;">No timetable found for this class.</p>'}
         </div>
     `;
-}
+};
 
 function renderProfile() {
     const currentUser = window.auth.getCurrentUser();
