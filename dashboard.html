@@ -532,20 +532,393 @@ function renderAttendance() {
     `;
 }
 
-function renderViewHomework() {
-    renderComingSoon('Homework');
+async function renderViewHomework() {
+    const contentArea = document.getElementById('contentArea');
+    const currentUser = window.auth.getCurrentUser();
+    const client = window.supabaseClient.getClient();
+
+    try {
+        // Get parent's student
+        const { data: parent } = await client
+            .from('parents')
+            .select('student_id')
+            .eq('id', currentUser.username)
+            .single();
+
+        if (!parent) {
+            contentArea.innerHTML = `
+                <div class="card">
+                    <h3>📝 Homework</h3>
+                    <p style="color: #e74c3c;">Parent information not found.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Get student's class
+        const { data: student } = await client
+            .from('students')
+            .select('class, name')
+            .eq('id', parent.student_id)
+            .single();
+
+        if (!student) {
+            contentArea.innerHTML = `
+                <div class="card">
+                    <h3>📝 Homework</h3>
+                    <p style="color: #e74c3c;">Student information not found.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Get homework for student's class
+        const { data: homework } = await client
+            .from('homework')
+            .select('*')
+            .eq('class', student.class)
+            .order('date', { ascending: false })
+            .limit(50);
+
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>📝 Homework - ${student.name} (${student.class})</h3>
+
+                ${homework && homework.length > 0 ? `
+                    <table style="width: 100%; margin-top: 20px;">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Subject</th>
+                                <th>Title</th>
+                                <th>Description</th>
+                                <th>Due Date</th>
+                                <th>Assigned By</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${homework.map(hw => `
+                                <tr>
+                                    <td>${new Date(hw.date).toLocaleDateString()}</td>
+                                    <td><strong>${hw.subject}</strong></td>
+                                    <td>${hw.title}</td>
+                                    <td>${hw.description || 'N/A'}</td>
+                                    <td>${hw.due_date ? new Date(hw.due_date).toLocaleDateString() : 'N/A'}</td>
+                                    <td>${hw.assigned_by || 'N/A'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                ` : '<p style="margin-top: 20px; color: #666;">No homework assigned yet.</p>'}
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error loading homework:', error);
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>📝 Homework</h3>
+                <p style="color: #e74c3c;">Error loading homework. Please try again.</p>
+            </div>
+        `;
+    }
 }
 
-function renderViewExamResults() {
-    renderComingSoon('Exam Results');
+async function renderViewExamResults() {
+    const contentArea = document.getElementById('contentArea');
+    const currentUser = window.auth.getCurrentUser();
+    const client = window.supabaseClient.getClient();
+
+    try {
+        // Get parent's student
+        const { data: parent } = await client
+            .from('parents')
+            .select('student_id')
+            .eq('id', currentUser.username)
+            .single();
+
+        if (!parent) {
+            contentArea.innerHTML = `
+                <div class="card">
+                    <h3>📈 Exam Results</h3>
+                    <p style="color: #e74c3c;">Parent information not found.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Get student info
+        const { data: student } = await client
+            .from('students')
+            .select('name')
+            .eq('id', parent.student_id)
+            .single();
+
+        // Get exam results for student
+        const { data: results } = await client
+            .from('exam_results')
+            .select('*')
+            .eq('student_id', parent.student_id)
+            .order('created_at', { ascending: false });
+
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>📈 Exam Results - ${student?.name || 'Student'}</h3>
+
+                ${results && results.length > 0 ? `
+                    <table style="width: 100%; margin-top: 20px;">
+                        <thead>
+                            <tr>
+                                <th>Exam Name</th>
+                                <th>Subject</th>
+                                <th>Marks Obtained</th>
+                                <th>Total Marks</th>
+                                <th>Percentage</th>
+                                <th>Grade</th>
+                                <th>Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${results.map(result => {
+                                const percentage = result.total_marks > 0
+                                    ? ((result.marks / result.total_marks) * 100).toFixed(2)
+                                    : 'N/A';
+                                return `
+                                    <tr>
+                                        <td><strong>${result.exam_name}</strong></td>
+                                        <td>${result.subject}</td>
+                                        <td>${result.marks}</td>
+                                        <td>${result.total_marks}</td>
+                                        <td>${percentage}%</td>
+                                        <td><span class="badge badge-${result.grade || 'normal'}">${result.grade || 'N/A'}</span></td>
+                                        <td>${result.remarks || '-'}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                ` : '<p style="margin-top: 20px; color: #666;">No exam results available yet.</p>'}
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error loading exam results:', error);
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>📈 Exam Results</h3>
+                <p style="color: #e74c3c;">Error loading exam results. Please try again.</p>
+            </div>
+        `;
+    }
 }
 
-function renderViewReportCards() {
-    renderComingSoon('Report Cards');
+async function renderViewReportCards() {
+    const contentArea = document.getElementById('contentArea');
+    const currentUser = window.auth.getCurrentUser();
+    const client = window.supabaseClient.getClient();
+
+    try {
+        // Get parent's student
+        const { data: parent } = await client
+            .from('parents')
+            .select('student_id')
+            .eq('id', currentUser.username)
+            .single();
+
+        if (!parent) {
+            contentArea.innerHTML = `
+                <div class="card">
+                    <h3>📄 Report Cards</h3>
+                    <p style="color: #e74c3c;">Parent information not found.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Get student info
+        const { data: student } = await client
+            .from('students')
+            .select('name, class')
+            .eq('id', parent.student_id)
+            .single();
+
+        // Get report cards for student
+        const { data: reportCards } = await client
+            .from('report_cards')
+            .select('*')
+            .eq('student_id', parent.student_id)
+            .order('created_at', { ascending: false });
+
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>📄 Report Cards - ${student?.name || 'Student'} (${student?.class || ''})</h3>
+
+                ${reportCards && reportCards.length > 0 ? `
+                    <div style="margin-top: 20px;">
+                        ${reportCards.map(card => `
+                            <div style="border: 1px solid #ddd; padding: 20px; margin-bottom: 20px; border-radius: 8px; background: #f9f9f9;">
+                                <h4 style="margin-top: 0;">${card.term} - ${card.academic_year}</h4>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                                    <div>
+                                        <strong>Overall Percentage:</strong>
+                                        <div style="font-size: 24px; color: var(--color-primary); margin-top: 5px;">
+                                            ${card.overall_percentage ? card.overall_percentage + '%' : 'N/A'}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <strong>Overall Grade:</strong>
+                                        <div style="font-size: 24px; color: var(--color-primary); margin-top: 5px;">
+                                            ${card.overall_grade || 'N/A'}
+                                        </div>
+                                    </div>
+                                </div>
+                                ${card.remarks ? `
+                                    <div style="margin-top: 15px;">
+                                        <strong>Remarks:</strong>
+                                        <p style="margin: 5px 0 0 0;">${card.remarks}</p>
+                                    </div>
+                                ` : ''}
+                                <div style="margin-top: 15px; color: #666; font-size: 0.9em;">
+                                    Generated on: ${new Date(card.created_at).toLocaleDateString()}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : '<p style="margin-top: 20px; color: #666;">No report cards available yet.</p>'}
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error loading report cards:', error);
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>📄 Report Cards</h3>
+                <p style="color: #e74c3c;">Error loading report cards. Please try again.</p>
+            </div>
+        `;
+    }
 }
 
-function renderExamSchedule() {
-    renderComingSoon('Exam Schedule');
+async function renderExamSchedule() {
+    const contentArea = document.getElementById('contentArea');
+    const currentUser = window.auth.getCurrentUser();
+    const client = window.supabaseClient.getClient();
+
+    try {
+        // Get parent's student
+        const { data: parent } = await client
+            .from('parents')
+            .select('student_id')
+            .eq('id', currentUser.username)
+            .single();
+
+        if (!parent) {
+            contentArea.innerHTML = `
+                <div class="card">
+                    <h3>📅 Exam Schedule</h3>
+                    <p style="color: #e74c3c;">Parent information not found.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Get student's class
+        const { data: student } = await client
+            .from('students')
+            .select('class, name')
+            .eq('id', parent.student_id)
+            .single();
+
+        if (!student) {
+            contentArea.innerHTML = `
+                <div class="card">
+                    <h3>📅 Exam Schedule</h3>
+                    <p style="color: #e74c3c;">Student information not found.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Get exam schedules for student's class
+        const { data: exams } = await client
+            .from('exam_schedules')
+            .select('*')
+            .eq('class', student.class)
+            .order('date', { ascending: true });
+
+        const today = new Date();
+        const upcomingExams = exams?.filter(exam => new Date(exam.date) >= today) || [];
+        const pastExams = exams?.filter(exam => new Date(exam.date) < today) || [];
+
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>📅 Exam Schedule - ${student.name} (${student.class})</h3>
+
+                ${upcomingExams.length > 0 ? `
+                    <div style="margin-top: 20px;">
+                        <h4>Upcoming Exams</h4>
+                        <table style="width: 100%; margin-top: 15px;">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Exam Name</th>
+                                    <th>Subject</th>
+                                    <th>Time</th>
+                                    <th>Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${upcomingExams.map(exam => `
+                                    <tr style="background: #e8f5e9;">
+                                        <td><strong>${new Date(exam.date).toLocaleDateString()}</strong></td>
+                                        <td>${exam.exam_name}</td>
+                                        <td>${exam.subject}</td>
+                                        <td>${exam.time || 'TBA'}</td>
+                                        <td>${exam.duration || 'TBA'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                ` : ''}
+
+                ${pastExams.length > 0 ? `
+                    <div style="margin-top: 30px;">
+                        <h4>Past Exams</h4>
+                        <table style="width: 100%; margin-top: 15px;">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Exam Name</th>
+                                    <th>Subject</th>
+                                    <th>Time</th>
+                                    <th>Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${pastExams.map(exam => `
+                                    <tr style="opacity: 0.6;">
+                                        <td>${new Date(exam.date).toLocaleDateString()}</td>
+                                        <td>${exam.exam_name}</td>
+                                        <td>${exam.subject}</td>
+                                        <td>${exam.time || 'TBA'}</td>
+                                        <td>${exam.duration || 'TBA'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                ` : ''}
+
+                ${!exams || exams.length === 0 ? '<p style="margin-top: 20px; color: #666;">No exam schedules available yet.</p>' : ''}
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error loading exam schedule:', error);
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>📅 Exam Schedule</h3>
+                <p style="color: #e74c3c;">Error loading exam schedule. Please try again.</p>
+            </div>
+        `;
+    }
 }
 
 function renderTimetable() {
@@ -647,53 +1020,1055 @@ function renderChangePassword() {
 }
 
 // Teacher tab functions
-function renderMyDuties() {
-    renderComingSoon('My Duties');
+async function renderMyDuties() {
+    const contentArea = document.getElementById('contentArea');
+    const currentUser = window.auth.getCurrentUser();
+    const client = window.supabaseClient.getClient();
+
+    try {
+        // Get duties for current teacher
+        const { data: duties } = await client
+            .from('teacher_duties')
+            .select('*')
+            .eq('teacher_id', currentUser.username)
+            .order('duty_date', { ascending: true });
+
+        const today = new Date();
+        const upcomingDuties = duties?.filter(duty => new Date(duty.duty_date) >= today) || [];
+        const pastDuties = duties?.filter(duty => new Date(duty.duty_date) < today) || [];
+
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>📋 My Duties</h3>
+
+                ${upcomingDuties.length > 0 ? `
+                    <div style="margin-top: 20px;">
+                        <h4>Upcoming Duties</h4>
+                        <table style="width: 100%; margin-top: 15px;">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Duty Name</th>
+                                    <th>Time</th>
+                                    <th>Location</th>
+                                    <th>Assigned By</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${upcomingDuties.map(duty => `
+                                    <tr style="background: #e8f5e9;">
+                                        <td><strong>${new Date(duty.duty_date).toLocaleDateString()}</strong></td>
+                                        <td>${duty.duty_name}</td>
+                                        <td>${duty.duty_time || 'N/A'}</td>
+                                        <td>${duty.location || 'N/A'}</td>
+                                        <td>${duty.assigned_by || 'N/A'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                ` : '<p style="margin-top: 20px; color: #666;">No upcoming duties.</p>'}
+
+                ${pastDuties.length > 0 ? `
+                    <div style="margin-top: 30px;">
+                        <h4>Past Duties</h4>
+                        <table style="width: 100%; margin-top: 15px;">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Duty Name</th>
+                                    <th>Time</th>
+                                    <th>Location</th>
+                                    <th>Assigned By</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${pastDuties.map(duty => `
+                                    <tr style="opacity: 0.6;">
+                                        <td>${new Date(duty.duty_date).toLocaleDateString()}</td>
+                                        <td>${duty.duty_name}</td>
+                                        <td>${duty.duty_time || 'N/A'}</td>
+                                        <td>${duty.location || 'N/A'}</td>
+                                        <td>${duty.assigned_by || 'N/A'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error loading duties:', error);
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>📋 My Duties</h3>
+                <p style="color: #e74c3c;">Error loading duties. Please try again.</p>
+            </div>
+        `;
+    }
 }
 
-function renderMarkAttendance() {
-    renderComingSoon('Mark Attendance');
+async function renderMarkAttendance() {
+    const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+
+    // Get all classes
+    const { data: classes } = await client
+        .from('classes')
+        .select('*')
+        .order('name');
+
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>✅ Mark Attendance</h3>
+
+            <div style="margin-bottom: 30px;">
+                <div class="form-group">
+                    <label for="attendanceClass">Select Class</label>
+                    <select id="attendanceClass">
+                        <option value="">-- Select Class --</option>
+                        ${classes?.map(c => `<option value="${c.name}">${c.name}</option>`).join('') || ''}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="attendanceDate">Date</label>
+                    <input type="date" id="attendanceDate" value="${new Date().toISOString().split('T')[0]}">
+                </div>
+                <div class="form-group">
+                    <label for="attendancePeriod">Period</label>
+                    <select id="attendancePeriod">
+                        <option value="Period 1">Period 1</option>
+                        <option value="Period 2">Period 2</option>
+                        <option value="Period 3">Period 3</option>
+                        <option value="Period 4">Period 4</option>
+                        <option value="Period 5">Period 5</option>
+                        <option value="Period 6">Period 6</option>
+                        <option value="Period 7">Period 7</option>
+                        <option value="Period 8">Period 8</option>
+                    </select>
+                </div>
+                <button class="btn-primary" onclick="loadStudentsForAttendance()">Load Students</button>
+            </div>
+
+            <div id="attendanceStudentsList"></div>
+        </div>
+    `;
 }
 
-function renderHomework() {
-    renderComingSoon('Homework Management');
+window.loadStudentsForAttendance = async function() {
+    const className = document.getElementById('attendanceClass').value;
+    const date = document.getElementById('attendanceDate').value;
+    const period = document.getElementById('attendancePeriod').value;
+
+    if (!className) {
+        showModal('Error', 'Please select a class', 'error');
+        return;
+    }
+
+    const client = window.supabaseClient.getClient();
+
+    // Get students in the class
+    const { data: students } = await client
+        .from('students')
+        .select('*')
+        .eq('class', className)
+        .eq('status', 'active')
+        .order('name');
+
+    if (!students || students.length === 0) {
+        document.getElementById('attendanceStudentsList').innerHTML = '<p>No students found in this class.</p>';
+        return;
+    }
+
+    // Get existing attendance for this date and period
+    const { data: existingAttendance } = await client
+        .from('attendance')
+        .select('*')
+        .eq('date', date)
+        .eq('period', period)
+        .in('student_id', students.map(s => s.id));
+
+    const attendanceMap = {};
+    existingAttendance?.forEach(att => {
+        attendanceMap[att.student_id] = att;
+    });
+
+    document.getElementById('attendanceStudentsList').innerHTML = `
+        <h4>Students in ${className}</h4>
+        <form id="attendanceForm">
+            <table style="width: 100%; margin-top: 15px;">
+                <thead>
+                    <tr>
+                        <th>Student ID</th>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th>Behavior</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${students.map(student => {
+                        const att = attendanceMap[student.id];
+                        return `
+                            <tr>
+                                <td>${student.id}</td>
+                                <td>${student.name}</td>
+                                <td>
+                                    <select class="attendance-status" data-student-id="${student.id}">
+                                        <option value="present" ${att?.type === 'present' ? 'selected' : ''}>Present</option>
+                                        <option value="absent" ${att?.type === 'absent' ? 'selected' : ''}>Absent</option>
+                                        <option value="late" ${att?.type === 'late' ? 'selected' : ''}>Late</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <select class="attendance-behavior" data-student-id="${student.id}">
+                                        <option value="excellent" ${att?.behavior === 'excellent' ? 'selected' : ''}>Excellent</option>
+                                        <option value="good" ${att?.behavior === 'good' || !att ? 'selected' : ''}>Good</option>
+                                        <option value="distracting" ${att?.behavior === 'distracting' ? 'selected' : ''}>Distracting</option>
+                                    </select>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+            <div style="margin-top: 20px;">
+                <button type="submit" class="btn-primary">Submit Attendance</button>
+            </div>
+        </form>
+    `;
+
+    document.getElementById('attendanceForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        await submitAttendance(students, date, period);
+    });
+};
+
+async function submitAttendance(students, date, period) {
+    const currentUser = window.auth.getCurrentUser();
+    const client = window.supabaseClient.getClient();
+
+    const attendanceRecords = students.map(student => {
+        const statusSelect = document.querySelector(`.attendance-status[data-student-id="${student.id}"]`);
+        const behaviorSelect = document.querySelector(`.attendance-behavior[data-student-id="${student.id}"]`);
+
+        return {
+            student_id: student.id,
+            date: date,
+            period: period,
+            type: statusSelect.value,
+            behavior: behaviorSelect.value,
+            marked_by: currentUser.username
+        };
+    });
+
+    try {
+        showLoading();
+
+        // Delete existing attendance for this date/period/students
+        await client
+            .from('attendance')
+            .delete()
+            .eq('date', date)
+            .eq('period', period)
+            .in('student_id', students.map(s => s.id));
+
+        // Insert new attendance records
+        const { error } = await client
+            .from('attendance')
+            .insert(attendanceRecords);
+
+        if (error) throw error;
+
+        hideLoading();
+        showModal('Success', 'Attendance submitted successfully!', 'success');
+    } catch (error) {
+        hideLoading();
+        showModal('Error', error.message || 'Failed to submit attendance', 'error');
+    }
 }
 
-function renderExamResults() {
-    renderComingSoon('Exam Results');
+async function renderHomework() {
+    const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+    const currentUser = window.auth.getCurrentUser();
+
+    // Get all classes
+    const { data: classes } = await client
+        .from('classes')
+        .select('*')
+        .order('name');
+
+    // Get existing homework assigned by this teacher
+    const { data: homeworkList } = await client
+        .from('homework')
+        .select('*')
+        .eq('assigned_by', currentUser.username)
+        .order('date', { ascending: false })
+        .limit(20);
+
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>📝 Homework Management</h3>
+
+            <h4>Assign New Homework</h4>
+            <form id="homeworkForm" style="max-width: 600px; margin-bottom: 40px;">
+                <div class="form-group">
+                    <label for="hwClass">Class</label>
+                    <select id="hwClass" required>
+                        <option value="">-- Select Class --</option>
+                        ${classes?.map(c => `<option value="${c.name}">${c.name}</option>`).join('') || ''}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="hwSubject">Subject</label>
+                    <input type="text" id="hwSubject" placeholder="e.g., Mathematics" required>
+                </div>
+                <div class="form-group">
+                    <label for="hwTitle">Title</label>
+                    <input type="text" id="hwTitle" placeholder="e.g., Chapter 5 Exercises" required>
+                </div>
+                <div class="form-group">
+                    <label for="hwDescription">Description</label>
+                    <textarea id="hwDescription" rows="3" placeholder="Details about the homework"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="hwDate">Assigned Date</label>
+                    <input type="date" id="hwDate" value="${new Date().toISOString().split('T')[0]}" required>
+                </div>
+                <div class="form-group">
+                    <label for="hwDueDate">Due Date</label>
+                    <input type="date" id="hwDueDate">
+                </div>
+                <button type="submit" class="btn-primary">Assign Homework</button>
+            </form>
+
+            <h4>Recently Assigned Homework</h4>
+            ${homeworkList && homeworkList.length > 0 ? `
+                <table style="width: 100%; margin-top: 15px;">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Class</th>
+                            <th>Subject</th>
+                            <th>Title</th>
+                            <th>Due Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${homeworkList.map(hw => `
+                            <tr>
+                                <td>${new Date(hw.date).toLocaleDateString()}</td>
+                                <td>${hw.class}</td>
+                                <td>${hw.subject}</td>
+                                <td>${hw.title}</td>
+                                <td>${hw.due_date ? new Date(hw.due_date).toLocaleDateString() : 'N/A'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            ` : '<p style="margin-top: 15px;">No homework assigned yet.</p>'}
+        </div>
+    `;
+
+    document.getElementById('homeworkForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const homeworkData = {
+            class: document.getElementById('hwClass').value,
+            subject: document.getElementById('hwSubject').value,
+            title: document.getElementById('hwTitle').value,
+            description: document.getElementById('hwDescription').value,
+            date: document.getElementById('hwDate').value,
+            due_date: document.getElementById('hwDueDate').value || null,
+            assigned_by: currentUser.username
+        };
+
+        try {
+            showLoading();
+            const { error } = await client
+                .from('homework')
+                .insert([homeworkData]);
+
+            if (error) throw error;
+
+            hideLoading();
+            showModal('Success', 'Homework assigned successfully!', 'success');
+            renderHomework(); // Refresh the page
+        } catch (error) {
+            hideLoading();
+            showModal('Error', error.message || 'Failed to assign homework', 'error');
+        }
+    });
 }
 
-function renderUploadMarks() {
-    renderComingSoon('Upload Marks');
+async function renderExamResults() {
+    const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+
+    // Get all exam results
+    const { data: results } = await client
+        .from('exam_results')
+        .select('*, students(name, class)')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>📊 Exam Results</h3>
+
+            ${results && results.length > 0 ? `
+                <table style="width: 100%; margin-top: 20px;">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Student Name</th>
+                            <th>Class</th>
+                            <th>Exam</th>
+                            <th>Subject</th>
+                            <th>Marks</th>
+                            <th>Grade</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${results.map(result => `
+                            <tr>
+                                <td>${result.student_id}</td>
+                                <td>${result.students?.name || 'N/A'}</td>
+                                <td>${result.students?.class || 'N/A'}</td>
+                                <td>${result.exam_name}</td>
+                                <td>${result.subject}</td>
+                                <td>${result.marks}/${result.total_marks}</td>
+                                <td><span class="badge">${result.grade || 'N/A'}</span></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            ` : '<p style="margin-top: 20px;">No exam results available.</p>'}
+        </div>
+    `;
 }
 
-function renderMyClasses() {
-    renderComingSoon('My Classes');
+async function renderUploadMarks() {
+    const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+
+    // Get all classes
+    const { data: classes } = await client
+        .from('classes')
+        .select('*')
+        .order('name');
+
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>📈 Upload Marks</h3>
+
+            <form id="uploadMarksForm" style="max-width: 600px;">
+                <div class="form-group">
+                    <label for="marksClass">Class</label>
+                    <select id="marksClass" required>
+                        <option value="">-- Select Class --</option>
+                        ${classes?.map(c => `<option value="${c.name}">${c.name}</option>`).join('') || ''}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="marksExam">Exam Name</label>
+                    <input type="text" id="marksExam" placeholder="e.g., Mid-term 2024" required>
+                </div>
+                <div class="form-group">
+                    <label for="marksSubject">Subject</label>
+                    <input type="text" id="marksSubject" placeholder="e.g., Mathematics" required>
+                </div>
+                <div class="form-group">
+                    <label for="marksTotalMarks">Total Marks</label>
+                    <input type="number" id="marksTotalMarks" placeholder="e.g., 100" required>
+                </div>
+                <button type="button" class="btn-primary" onclick="loadStudentsForMarks()">Load Students</button>
+            </form>
+
+            <div id="marksStudentsList"></div>
+        </div>
+    `;
 }
 
-function renderTeacherIssues() {
-    renderComingSoon('Teacher Issues');
+window.loadStudentsForMarks = async function() {
+    const className = document.getElementById('marksClass').value;
+    const examName = document.getElementById('marksExam').value;
+    const subject = document.getElementById('marksSubject').value;
+    const totalMarks = document.getElementById('marksTotalMarks').value;
+
+    if (!className || !examName || !subject || !totalMarks) {
+        showModal('Error', 'Please fill all fields', 'error');
+        return;
+    }
+
+    const client = window.supabaseClient.getClient();
+
+    // Get students in the class
+    const { data: students } = await client
+        .from('students')
+        .select('*')
+        .eq('class', className)
+        .eq('status', 'active')
+        .order('name');
+
+    if (!students || students.length === 0) {
+        document.getElementById('marksStudentsList').innerHTML = '<p>No students found in this class.</p>';
+        return;
+    }
+
+    document.getElementById('marksStudentsList').innerHTML = `
+        <h4 style="margin-top: 30px;">Enter Marks for ${className} - ${subject}</h4>
+        <form id="marksSubmitForm">
+            <table style="width: 100%; margin-top: 15px;">
+                <thead>
+                    <tr>
+                        <th>Student ID</th>
+                        <th>Name</th>
+                        <th>Marks Obtained</th>
+                        <th>Grade</th>
+                        <th>Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${students.map(student => `
+                        <tr>
+                            <td>${student.id}</td>
+                            <td>${student.name}</td>
+                            <td>
+                                <input type="number" class="marks-input" data-student-id="${student.id}"
+                                       min="0" max="${totalMarks}" style="width: 80px;">
+                            </td>
+                            <td>
+                                <select class="grade-input" data-student-id="${student.id}">
+                                    <option value="A+">A+</option>
+                                    <option value="A">A</option>
+                                    <option value="B+">B+</option>
+                                    <option value="B">B</option>
+                                    <option value="C">C</option>
+                                    <option value="D">D</option>
+                                    <option value="F">F</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input type="text" class="remarks-input" data-student-id="${student.id}"
+                                       style="width: 150px;" placeholder="Optional">
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            <div style="margin-top: 20px;">
+                <button type="submit" class="btn-primary">Submit All Marks</button>
+            </div>
+        </form>
+    `;
+
+    document.getElementById('marksSubmitForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        await submitMarks(students, examName, subject, totalMarks);
+    });
+};
+
+async function submitMarks(students, examName, subject, totalMarks) {
+    const client = window.supabaseClient.getClient();
+
+    const marksRecords = students.map(student => {
+        const marksInput = document.querySelector(`.marks-input[data-student-id="${student.id}"]`);
+        const gradeInput = document.querySelector(`.grade-input[data-student-id="${student.id}"]`);
+        const remarksInput = document.querySelector(`.remarks-input[data-student-id="${student.id}"]`);
+
+        if (!marksInput.value) return null;
+
+        return {
+            student_id: student.id,
+            exam_name: examName,
+            subject: subject,
+            marks: parseFloat(marksInput.value),
+            total_marks: parseFloat(totalMarks),
+            grade: gradeInput.value,
+            remarks: remarksInput.value || null
+        };
+    }).filter(r => r !== null);
+
+    if (marksRecords.length === 0) {
+        showModal('Error', 'Please enter marks for at least one student', 'error');
+        return;
+    }
+
+    try {
+        showLoading();
+
+        const { error } = await client
+            .from('exam_results')
+            .insert(marksRecords);
+
+        if (error) throw error;
+
+        hideLoading();
+        showModal('Success', `Marks uploaded successfully for ${marksRecords.length} students!`, 'success');
+        renderUploadMarks(); // Refresh
+    } catch (error) {
+        hideLoading();
+        showModal('Error', error.message || 'Failed to upload marks', 'error');
+    }
 }
+
+async function renderMyClasses() {
+    const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+    const currentUser = window.auth.getCurrentUser();
+
+    // Get teacher info
+    const { data: teacher } = await client
+        .from('teachers')
+        .select('*')
+        .eq('id', currentUser.username)
+        .single();
+
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>👥 My Classes</h3>
+
+            ${teacher ? `
+                <div style="margin-top: 20px;">
+                    <div class="form-section">
+                        <div class="form-row">
+                            <div class="form-control">
+                                <label>Subjects</label>
+                                <input type="text" value="${teacher.subjects || 'N/A'}" readonly>
+                            </div>
+                            <div class="form-control">
+                                <label>Classes</label>
+                                <input type="text" value="${teacher.classes || 'N/A'}" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 30px;">
+                        <h4>Classes Assigned to You:</h4>
+                        <p style="margin-top: 10px;">${teacher.classes || 'No classes assigned yet'}</p>
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <h4>Subjects You Teach:</h4>
+                        <p style="margin-top: 10px;">${teacher.subjects || 'No subjects assigned yet'}</p>
+                    </div>
+                </div>
+            ` : '<p style="margin-top: 20px;">Teacher information not found.</p>'}
+        </div>
+    `;
+}
+
+async function renderTeacherIssues() {
+    const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+    const currentUser = window.auth.getCurrentUser();
+
+    // Get issues reported by this teacher
+    const { data: issues } = await client
+        .from('issues')
+        .select('*')
+        .eq('reported_by', currentUser.username)
+        .order('created_at', { ascending: false });
+
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>⚠️ My Issues</h3>
+
+            <button class="btn-primary" onclick="showCreateTeacherIssue()" style="margin-bottom: 20px;">+ Report New Issue</button>
+
+            <div id="createIssueForm" style="display: none; margin-bottom: 30px;">
+                <h4>Report New Issue</h4>
+                <form id="issueForm" style="max-width: 600px;">
+                    <div class="form-group">
+                        <label for="issueTitle">Title</label>
+                        <input type="text" id="issueTitle" placeholder="Brief description" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="issueDescription">Description</label>
+                        <textarea id="issueDescription" rows="4" placeholder="Detailed description"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="issuePriority">Priority</label>
+                        <select id="issuePriority">
+                            <option value="low">Low</option>
+                            <option value="normal" selected>Normal</option>
+                            <option value="high">High</option>
+                            <option value="critical">Critical</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-primary">Submit Issue</button>
+                    <button type="button" class="btn-secondary" onclick="document.getElementById('createIssueForm').style.display='none'">Cancel</button>
+                </form>
+            </div>
+
+            ${issues && issues.length > 0 ? `
+                <div>
+                    ${issues.map(issue => `
+                        <div style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px;">
+                            <h4 style="margin-top: 0;">${issue.title}</h4>
+                            <p>${issue.description || 'No description'}</p>
+                            <div style="margin-top: 10px;">
+                                <span class="badge badge-${issue.priority}">${issue.priority}</span>
+                                <span class="badge badge-${issue.status}">${issue.status}</span>
+                                <span style="color: #666; font-size: 0.9em; margin-left: 10px;">
+                                    Created: ${new Date(issue.created_at).toLocaleDateString()}
+                                </span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : '<p style="margin-top: 20px;">No issues reported yet.</p>'}
+        </div>
+    `;
+
+    const form = document.getElementById('issueForm');
+    if (form) {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const issueData = {
+                title: document.getElementById('issueTitle').value,
+                description: document.getElementById('issueDescription').value,
+                priority: document.getElementById('issuePriority').value,
+                reported_by: currentUser.username,
+                status: 'pending'
+            };
+
+            try {
+                showLoading();
+                const { error } = await client
+                    .from('issues')
+                    .insert([issueData]);
+
+                if (error) throw error;
+
+                hideLoading();
+                showModal('Success', 'Issue reported successfully!', 'success');
+                renderTeacherIssues(); // Refresh
+            } catch (error) {
+                hideLoading();
+                showModal('Error', error.message || 'Failed to report issue', 'error');
+            }
+        });
+    }
+}
+
+window.showCreateTeacherIssue = function() {
+    document.getElementById('createIssueForm').style.display = 'block';
+};
 
 // Coordinator tab functions
-function renderCoordIssues() {
-    renderComingSoon('Coordinator Issues');
+async function renderCoordIssues() {
+    // Use the same issues management as VP
+    await renderVPIssues();
 }
 
-function renderUploadExam() {
-    renderComingSoon('Upload Exam');
+async function renderUploadExam() {
+    const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+
+    // Get all classes
+    const { data: classes } = await client
+        .from('classes')
+        .select('*')
+        .order('name');
+
+    // Get existing exams
+    const { data: exams } = await client
+        .from('exam_schedules')
+        .select('*')
+        .order('date', { ascending: false })
+        .limit(20);
+
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>📋 Upload Exam Schedule</h3>
+
+            <h4>Create New Exam</h4>
+            <form id="examForm" style="max-width: 600px; margin-bottom: 40px;">
+                <div class="form-group">
+                    <label for="examClass">Class</label>
+                    <select id="examClass" required>
+                        <option value="">-- Select Class --</option>
+                        ${classes?.map(c => `<option value="${c.name}">${c.name}</option>`).join('') || ''}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="examName">Exam Name</label>
+                    <input type="text" id="examName" placeholder="e.g., Mid-term 2024" required>
+                </div>
+                <div class="form-group">
+                    <label for="examSubject">Subject</label>
+                    <input type="text" id="examSubject" placeholder="e.g., Mathematics" required>
+                </div>
+                <div class="form-group">
+                    <label for="examDate">Date</label>
+                    <input type="date" id="examDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="examTime">Time</label>
+                    <input type="text" id="examTime" placeholder="e.g., 09:00 AM - 12:00 PM">
+                </div>
+                <div class="form-group">
+                    <label for="examDuration">Duration</label>
+                    <input type="text" id="examDuration" placeholder="e.g., 3 hours">
+                </div>
+                <button type="submit" class="btn-primary">Create Exam</button>
+            </form>
+
+            <h4>Recent Exams</h4>
+            ${exams && exams.length > 0 ? `
+                <table style="width: 100%; margin-top: 15px;">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Class</th>
+                            <th>Exam Name</th>
+                            <th>Subject</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${exams.map(exam => `
+                            <tr>
+                                <td>${new Date(exam.date).toLocaleDateString()}</td>
+                                <td>${exam.class}</td>
+                                <td>${exam.exam_name}</td>
+                                <td>${exam.subject}</td>
+                                <td>${exam.time || 'TBA'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            ` : '<p style="margin-top: 15px;">No exams scheduled yet.</p>'}
+        </div>
+    `;
+
+    document.getElementById('examForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const examData = {
+            class: document.getElementById('examClass').value,
+            exam_name: document.getElementById('examName').value,
+            subject: document.getElementById('examSubject').value,
+            date: document.getElementById('examDate').value,
+            time: document.getElementById('examTime').value || null,
+            duration: document.getElementById('examDuration').value || null
+        };
+
+        try {
+            showLoading();
+            const { error } = await client
+                .from('exam_schedules')
+                .insert([examData]);
+
+            if (error) throw error;
+
+            hideLoading();
+            showModal('Success', 'Exam scheduled successfully!', 'success');
+            renderUploadExam(); // Refresh
+        } catch (error) {
+            hideLoading();
+            showModal('Error', error.message || 'Failed to schedule exam', 'error');
+        }
+    });
 }
 
-function renderClasses() {
-    renderComingSoon('Classes Management');
+async function renderClasses() {
+    const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+
+    // Get all classes
+    const { data: classes } = await client
+        .from('classes')
+        .select('*')
+        .order('name');
+
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>👥 Classes Management</h3>
+
+            ${classes && classes.length > 0 ? `
+                <table style="width: 100%; margin-top: 20px;">
+                    <thead>
+                        <tr>
+                            <th>Class Name</th>
+                            <th>Grade</th>
+                            <th>Section</th>
+                            <th>Class Teacher</th>
+                            <th>Total Students</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${classes.map(cls => `
+                            <tr>
+                                <td><strong>${cls.name}</strong></td>
+                                <td>${cls.grade}</td>
+                                <td>${cls.section}</td>
+                                <td>${cls.class_teacher_id || 'Not Assigned'}</td>
+                                <td>${cls.total_students}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            ` : '<p style="margin-top: 20px;">No classes found.</p>'}
+        </div>
+    `;
 }
 
-function renderManageTimetable() {
-    renderComingSoon('Manage Timetable');
+async function renderManageTimetable() {
+    const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+
+    // Get all classes
+    const { data: classes } = await client
+        .from('classes')
+        .select('*')
+        .order('name');
+
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>🗓️ Manage Timetable</h3>
+
+            <div class="form-group" style="max-width: 400px;">
+                <label for="timetableClass">Select Class</label>
+                <select id="timetableClass" onchange="loadTimetableForClass()">
+                    <option value="">-- Select Class --</option>
+                    ${classes?.map(c => `<option value="${c.name}">${c.name}</option>`).join('') || ''}
+                </select>
+            </div>
+
+            <div id="timetableContent"></div>
+        </div>
+    `;
 }
 
-function renderUploadCCA() {
-    renderComingSoon('Upload CCA');
+window.loadTimetableForClass = async function() {
+    const className = document.getElementById('timetableClass').value;
+    if (!className) {
+        document.getElementById('timetableContent').innerHTML = '';
+        return;
+    }
+
+    const client = window.supabaseClient.getClient();
+
+    const { data: timetable } = await client
+        .from('timetables')
+        .select('*')
+        .eq('class', className)
+        .single();
+
+    document.getElementById('timetableContent').innerHTML = `
+        <div style="margin-top: 30px;">
+            <h4>Timetable for ${className}</h4>
+            ${timetable ? `
+                <p style="margin-top: 15px;">Timetable data (JSON format):</p>
+                <pre style="background: #f5f5f5; padding: 15px; border-radius: 5px; overflow: auto;">${JSON.stringify(timetable.periods, null, 2)}</pre>
+                <p style="margin-top: 15px; color: #666;">Note: Timetable editing interface can be implemented here.</p>
+            ` : '<p style="margin-top: 15px;">No timetable found for this class.</p>'}
+        </div>
+    `;
+};
+
+async function renderUploadCCA() {
+    const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+
+    // Get existing CCA events
+    const { data: ccaEvents } = await client
+        .from('cca_calendars')
+        .select('*')
+        .order('event_date', { ascending: false })
+        .limit(20);
+
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>🎨 Upload CCA Events</h3>
+
+            <h4>Create New CCA Event</h4>
+            <form id="ccaForm" style="max-width: 600px; margin-bottom: 40px;">
+                <div class="form-group">
+                    <label for="ccaName">Event Name</label>
+                    <input type="text" id="ccaName" placeholder="e.g., Annual Sports Day" required>
+                </div>
+                <div class="form-group">
+                    <label for="ccaDate">Event Date</label>
+                    <input type="date" id="ccaDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="ccaTime">Event Time</label>
+                    <input type="text" id="ccaTime" placeholder="e.g., 9:00 AM - 4:00 PM">
+                </div>
+                <div class="form-group">
+                    <label for="ccaLocation">Location</label>
+                    <input type="text" id="ccaLocation" placeholder="e.g., School Auditorium">
+                </div>
+                <div class="form-group">
+                    <label for="ccaDescription">Description</label>
+                    <textarea id="ccaDescription" rows="3" placeholder="Event details"></textarea>
+                </div>
+                <button type="submit" class="btn-primary">Create Event</button>
+            </form>
+
+            <h4>Recent CCA Events</h4>
+            ${ccaEvents && ccaEvents.length > 0 ? `
+                <table style="width: 100%; margin-top: 15px;">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Event Name</th>
+                            <th>Time</th>
+                            <th>Location</th>
+                            <th>Created By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${ccaEvents.map(event => `
+                            <tr>
+                                <td>${new Date(event.event_date).toLocaleDateString()}</td>
+                                <td><strong>${event.event_name}</strong></td>
+                                <td>${event.event_time || 'TBA'}</td>
+                                <td>${event.location || 'TBA'}</td>
+                                <td>${event.created_by || 'N/A'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            ` : '<p style="margin-top: 15px;">No CCA events created yet.</p>'}
+        </div>
+    `;
+
+    const currentUser = window.auth.getCurrentUser();
+    document.getElementById('ccaForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const ccaData = {
+            event_name: document.getElementById('ccaName').value,
+            event_date: document.getElementById('ccaDate').value,
+            event_time: document.getElementById('ccaTime').value || null,
+            location: document.getElementById('ccaLocation').value || null,
+            description: document.getElementById('ccaDescription').value || null,
+            created_by: currentUser.username
+        };
+
+        try {
+            showLoading();
+            const { error } = await client
+                .from('cca_calendars')
+                .insert([ccaData]);
+
+            if (error) throw error;
+
+            hideLoading();
+            showModal('Success', 'CCA event created successfully!', 'success');
+            renderUploadCCA(); // Refresh
+        } catch (error) {
+            hideLoading();
+            showModal('Error', error.message || 'Failed to create CCA event', 'error');
+        }
+    });
 }
 
 // Vice Principal tab functions
@@ -1506,16 +2881,418 @@ async function renderAnalytics() {
 }
 
 // Class Teacher tab functions
-function renderClassDashboard() {
-    renderComingSoon('Class Dashboard');
+async function renderClassDashboard() {
+    const contentArea = document.getElementById('contentArea');
+    const currentUser = window.auth.getCurrentUser();
+    const client = window.supabaseClient.getClient();
+
+    try {
+        // Get class teacher info
+        const { data: classTeacher } = await client
+            .from('class_teachers')
+            .select('*')
+            .eq('id', currentUser.username)
+            .single();
+
+        if (!classTeacher) {
+            contentArea.innerHTML = `
+                <div class="card">
+                    <h3>📊 Class Dashboard</h3>
+                    <p style="color: #e74c3c;">Class teacher information not found.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Get students in the class
+        const { data: students } = await client
+            .from('students')
+            .select('*')
+            .eq('class', classTeacher.class)
+            .eq('status', 'active');
+
+        // Get recent attendance for this class
+        const today = new Date().toISOString().split('T')[0];
+        const { data: todayAttendance } = await client
+            .from('attendance')
+            .select('*')
+            .eq('date', today)
+            .in('student_id', students?.map(s => s.id) || []);
+
+        const presentCount = todayAttendance?.filter(a => a.type === 'present').length || 0;
+        const absentCount = todayAttendance?.filter(a => a.type === 'absent').length || 0;
+        const lateCount = todayAttendance?.filter(a => a.type === 'late').length || 0;
+
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>📊 Class Dashboard - ${classTeacher.class}</h3>
+
+                <div class="stats-grid" style="margin-top: 30px;">
+                    <div class="stat-card">
+                        <div class="stat-value">${students?.length || 0}</div>
+                        <div class="stat-label">Total Students</div>
+                    </div>
+                    <div class="stat-card" style="background: #d4edda;">
+                        <div class="stat-value">${presentCount}</div>
+                        <div class="stat-label">Present Today</div>
+                    </div>
+                    <div class="stat-card" style="background: #f8d7da;">
+                        <div class="stat-value">${absentCount}</div>
+                        <div class="stat-label">Absent Today</div>
+                    </div>
+                    <div class="stat-card" style="background: #fff3cd;">
+                        <div class="stat-value">${lateCount}</div>
+                        <div class="stat-label">Late Today</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 40px;">
+                    <h4>Students in ${classTeacher.class}</h4>
+                    ${students && students.length > 0 ? `
+                        <table style="width: 100%; margin-top: 15px;">
+                            <thead>
+                                <tr>
+                                    <th>Student ID</th>
+                                    <th>Name</th>
+                                    <th>Parent ID</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${students.map(student => `
+                                    <tr>
+                                        <td>${student.id}</td>
+                                        <td>${student.name}</td>
+                                        <td>${student.parent_id || 'N/A'}</td>
+                                        <td><span class="badge badge-${student.status}">${student.status}</span></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    ` : '<p style="margin-top: 15px;">No students in this class.</p>'}
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error loading class dashboard:', error);
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>📊 Class Dashboard</h3>
+                <p style="color: #e74c3c;">Error loading dashboard. Please try again.</p>
+            </div>
+        `;
+    }
 }
 
-function renderCTMarkAttendance() {
-    renderComingSoon('Mark Attendance (Class Teacher)');
+async function renderCTMarkAttendance() {
+    const contentArea = document.getElementById('contentArea');
+    const currentUser = window.auth.getCurrentUser();
+    const client = window.supabaseClient.getClient();
+
+    try {
+        // Get class teacher info
+        const { data: classTeacher } = await client
+            .from('class_teachers')
+            .select('*')
+            .eq('id', currentUser.username)
+            .single();
+
+        if (!classTeacher) {
+            contentArea.innerHTML = `
+                <div class="card">
+                    <h3>✅ Mark Attendance</h3>
+                    <p style="color: #e74c3c;">Class teacher information not found.</p>
+                </div>
+            `;
+            return;
+        }
+
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>✅ Mark Attendance - ${classTeacher.class}</h3>
+
+                <div style="margin-bottom: 30px;">
+                    <div class="form-group">
+                        <label for="ctAttendanceDate">Date</label>
+                        <input type="date" id="ctAttendanceDate" value="${new Date().toISOString().split('T')[0]}">
+                    </div>
+                    <div class="form-group">
+                        <label for="ctAttendancePeriod">Period</label>
+                        <select id="ctAttendancePeriod">
+                            <option value="Period 1">Period 1</option>
+                            <option value="Period 2">Period 2</option>
+                            <option value="Period 3">Period 3</option>
+                            <option value="Period 4">Period 4</option>
+                            <option value="Period 5">Period 5</option>
+                            <option value="Period 6">Period 6</option>
+                            <option value="Period 7">Period 7</option>
+                            <option value="Period 8">Period 8</option>
+                        </select>
+                    </div>
+                    <button class="btn-primary" onclick="loadCTStudentsForAttendance('${classTeacher.class}')">Load Students</button>
+                </div>
+
+                <div id="ctAttendanceStudentsList"></div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error loading attendance page:', error);
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>✅ Mark Attendance</h3>
+                <p style="color: #e74c3c;">Error loading attendance. Please try again.</p>
+            </div>
+        `;
+    }
 }
 
-function renderReportCards() {
-    renderComingSoon('Report Cards');
+window.loadCTStudentsForAttendance = async function(className) {
+    const date = document.getElementById('ctAttendanceDate').value;
+    const period = document.getElementById('ctAttendancePeriod').value;
+    const client = window.supabaseClient.getClient();
+
+    // Get students in the class
+    const { data: students } = await client
+        .from('students')
+        .select('*')
+        .eq('class', className)
+        .eq('status', 'active')
+        .order('name');
+
+    if (!students || students.length === 0) {
+        document.getElementById('ctAttendanceStudentsList').innerHTML = '<p>No students found in this class.</p>';
+        return;
+    }
+
+    // Get existing attendance
+    const { data: existingAttendance } = await client
+        .from('attendance')
+        .select('*')
+        .eq('date', date)
+        .eq('period', period)
+        .in('student_id', students.map(s => s.id));
+
+    const attendanceMap = {};
+    existingAttendance?.forEach(att => {
+        attendanceMap[att.student_id] = att;
+    });
+
+    document.getElementById('ctAttendanceStudentsList').innerHTML = `
+        <h4>Students in ${className}</h4>
+        <form id="ctAttendanceForm">
+            <table style="width: 100%; margin-top: 15px;">
+                <thead>
+                    <tr>
+                        <th>Student ID</th>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th>Behavior</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${students.map(student => {
+                        const att = attendanceMap[student.id];
+                        return `
+                            <tr>
+                                <td>${student.id}</td>
+                                <td>${student.name}</td>
+                                <td>
+                                    <select class="attendance-status" data-student-id="${student.id}">
+                                        <option value="present" ${att?.type === 'present' ? 'selected' : ''}>Present</option>
+                                        <option value="absent" ${att?.type === 'absent' ? 'selected' : ''}>Absent</option>
+                                        <option value="late" ${att?.type === 'late' ? 'selected' : ''}>Late</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <select class="attendance-behavior" data-student-id="${student.id}">
+                                        <option value="excellent" ${att?.behavior === 'excellent' ? 'selected' : ''}>Excellent</option>
+                                        <option value="good" ${att?.behavior === 'good' || !att ? 'selected' : ''}>Good</option>
+                                        <option value="distracting" ${att?.behavior === 'distracting' ? 'selected' : ''}>Distracting</option>
+                                    </select>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+            <div style="margin-top: 20px;">
+                <button type="submit" class="btn-primary">Submit Attendance</button>
+            </div>
+        </form>
+    `;
+
+    document.getElementById('ctAttendanceForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        await submitAttendance(students, date, period);
+    });
+};
+
+async function renderReportCards() {
+    const contentArea = document.getElementById('contentArea');
+    const currentUser = window.auth.getCurrentUser();
+    const client = window.supabaseClient.getClient();
+
+    try {
+        // Get class teacher info
+        const { data: classTeacher } = await client
+            .from('class_teachers')
+            .select('*')
+            .eq('id', currentUser.username)
+            .single();
+
+        if (!classTeacher) {
+            contentArea.innerHTML = `
+                <div class="card">
+                    <h3>📄 Report Cards</h3>
+                    <p style="color: #e74c3c;">Class teacher information not found.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Get students in the class
+        const { data: students } = await client
+            .from('students')
+            .select('id, name')
+            .eq('class', classTeacher.class)
+            .eq('status', 'active')
+            .order('name');
+
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>📄 Report Cards - ${classTeacher.class}</h3>
+
+                <h4>Generate Report Card</h4>
+                <form id="reportCardForm" style="max-width: 600px; margin-bottom: 40px;">
+                    <div class="form-group">
+                        <label for="rcStudent">Select Student</label>
+                        <select id="rcStudent" required>
+                            <option value="">-- Select Student --</option>
+                            ${students?.map(s => `<option value="${s.id}">${s.name} (${s.id})</option>`).join('') || ''}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="rcTerm">Term</label>
+                        <select id="rcTerm" required>
+                            <option value="Term 1">Term 1</option>
+                            <option value="Term 2">Term 2</option>
+                            <option value="Term 3">Term 3</option>
+                            <option value="Final">Final</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="rcYear">Academic Year</label>
+                        <input type="text" id="rcYear" placeholder="e.g., 2024-2025" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="rcPercentage">Overall Percentage</label>
+                        <input type="number" id="rcPercentage" min="0" max="100" step="0.01" placeholder="e.g., 85.5">
+                    </div>
+                    <div class="form-group">
+                        <label for="rcGrade">Overall Grade</label>
+                        <select id="rcGrade">
+                            <option value="A+">A+</option>
+                            <option value="A">A</option>
+                            <option value="B+">B+</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
+                            <option value="D">D</option>
+                            <option value="F">F</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="rcRemarks">Remarks</label>
+                        <textarea id="rcRemarks" rows="3" placeholder="Teacher's comments"></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary">Generate Report Card</button>
+                </form>
+
+                <h4>Recent Report Cards for ${classTeacher.class}</h4>
+                <div id="recentReportCards">Loading...</div>
+            </div>
+        `;
+
+        // Load recent report cards
+        const studentIds = students?.map(s => s.id) || [];
+        if (studentIds.length > 0) {
+            const { data: reportCards } = await client
+                .from('report_cards')
+                .select('*, students(name)')
+                .in('student_id', studentIds)
+                .order('created_at', { ascending: false })
+                .limit(10);
+
+            const recentDiv = document.getElementById('recentReportCards');
+            if (reportCards && reportCards.length > 0) {
+                recentDiv.innerHTML = `
+                    <table style="width: 100%; margin-top: 15px;">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Term</th>
+                                <th>Year</th>
+                                <th>Percentage</th>
+                                <th>Grade</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${reportCards.map(rc => `
+                                <tr>
+                                    <td>${rc.students?.name || 'N/A'}</td>
+                                    <td>${rc.term}</td>
+                                    <td>${rc.academic_year}</td>
+                                    <td>${rc.overall_percentage || 'N/A'}%</td>
+                                    <td><span class="badge">${rc.overall_grade || 'N/A'}</span></td>
+                                    <td>${new Date(rc.created_at).toLocaleDateString()}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } else {
+                recentDiv.innerHTML = '<p style="margin-top: 15px;">No report cards generated yet.</p>';
+            }
+        }
+
+        // Form submit handler
+        document.getElementById('reportCardForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const reportCardData = {
+                student_id: parseInt(document.getElementById('rcStudent').value),
+                term: document.getElementById('rcTerm').value,
+                academic_year: document.getElementById('rcYear').value,
+                overall_percentage: parseFloat(document.getElementById('rcPercentage').value) || null,
+                overall_grade: document.getElementById('rcGrade').value,
+                remarks: document.getElementById('rcRemarks').value || null
+            };
+
+            try {
+                showLoading();
+                const { error } = await client
+                    .from('report_cards')
+                    .insert([reportCardData]);
+
+                if (error) throw error;
+
+                hideLoading();
+                showModal('Success', 'Report card generated successfully!', 'success');
+                renderReportCards(); // Refresh
+            } catch (error) {
+                hideLoading();
+                showModal('Error', error.message || 'Failed to generate report card', 'error');
+            }
+        });
+    } catch (error) {
+        console.error('Error loading report cards:', error);
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>📄 Report Cards</h3>
+                <p style="color: #e74c3c;">Error loading report cards. Please try again.</p>
+            </div>
+        `;
+    }
 }
 
 // Generic coming soon function
