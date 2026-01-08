@@ -2690,29 +2690,50 @@ window.showRegisterForm = function(userType) {
             e.preventDefault();
 
             const studentId = parseInt(document.getElementById('studentId').value);
-            const studentName = document.getElementById('studentName').value;
-            const studentClass = document.getElementById('studentClass').value;
-            const parentId = document.getElementById('parentId').value;
+            const studentName = document.getElementById('studentName').value.trim();
+            const studentClass = document.getElementById('studentClass').value.trim();
+            const parentId = document.getElementById('parentId').value.trim();
+
+            // Validation
+            if (!studentId || !studentName || !studentClass || !parentId) {
+                showModal('Error', 'Please fill in all required fields.', 'error');
+                return;
+            }
+
+            if (isNaN(studentId)) {
+                showModal('Error', 'Student ID must be a valid number.', 'error');
+                return;
+            }
 
             try {
                 showLoading();
                 const client = window.supabaseClient.getClient();
 
+                console.log('Starting student registration for:', studentId);
+
                 // Check if student ID already exists
-                const { data: existingStudent } = await client
+                console.log('Checking if student ID exists:', studentId);
+                const { data: existingStudent, error: checkError } = await client
                     .from('students')
                     .select('id, name')
                     .eq('id', studentId)
                     .maybeSingle();
 
+                if (checkError) {
+                    console.error('Error checking student:', checkError);
+                    throw new Error(`Error checking student: ${checkError.message}`);
+                }
+
                 if (existingStudent) {
+                    console.log('Student ID already exists:', studentId);
                     hideLoading();
                     showModal('Error', `Student ID ${studentId} already exists (${existingStudent.name}). Please use a different Student ID.`, 'error');
                     return;
                 }
 
                 // Insert student
-                const { error } = await client
+                console.log('Inserting student record...');
+                const { data: studentData, error: insertError } = await client
                     .from('students')
                     .insert([{
                         id: studentId,
@@ -2720,16 +2741,22 @@ window.showRegisterForm = function(userType) {
                         class: studentClass,
                         parent_id: parentId,
                         status: 'active'
-                    }]);
+                    }])
+                    .select();
 
-                if (error) throw error;
+                if (insertError) {
+                    console.error('Error inserting student:', insertError);
+                    throw new Error(`Failed to create student record: ${insertError.message}`);
+                }
+                console.log('Student record created:', studentData);
 
                 hideLoading();
-                showModal('Success', `Student registered successfully!\n\nStudent: ${studentName}\nID: ${studentId}\nClass: ${studentClass}`, 'success');
+                showModal('Success', `Student registered successfully!\n\nStudent: ${studentName}\nID: ${studentId}\nClass: ${studentClass}\n\nNext: Register parent with ID: ${parentId}`, 'success');
                 document.getElementById('registerForm').reset();
             } catch (error) {
+                console.error('Registration failed:', error);
                 hideLoading();
-                showModal('Error', error.message, 'error');
+                showModal('Error', `Registration failed: ${error.message}`, 'error');
             }
         });
     } else if (userType === 'parent') {
@@ -2763,85 +2790,135 @@ window.showRegisterForm = function(userType) {
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const parentId = document.getElementById('parentId').value;
-            const parentName = document.getElementById('parentName').value;
+            const parentId = document.getElementById('parentId').value.trim();
+            const parentName = document.getElementById('parentName').value.trim();
             const studentId = parseInt(document.getElementById('studentId').value);
-            const phone = document.getElementById('phone').value;
+            const phone = document.getElementById('phone').value.trim();
             const password = document.getElementById('password').value;
+
+            // Validation
+            if (!parentId || !parentName || !studentId || !password) {
+                showModal('Error', 'Please fill in all required fields.', 'error');
+                return;
+            }
+
+            if (isNaN(studentId)) {
+                showModal('Error', 'Student ID must be a valid number.', 'error');
+                return;
+            }
 
             try {
                 showLoading();
                 const client = window.supabaseClient.getClient();
 
+                console.log('Starting parent registration for:', parentId);
+
                 // First, check if the student exists
-                const { data: studentExists } = await client
+                console.log('Checking if student exists:', studentId);
+                const { data: studentExists, error: studentCheckError } = await client
                     .from('students')
                     .select('id, name, class')
                     .eq('id', studentId)
                     .maybeSingle();
 
+                if (studentCheckError) {
+                    console.error('Error checking student:', studentCheckError);
+                    throw new Error(`Error checking student: ${studentCheckError.message}`);
+                }
+
                 if (!studentExists) {
+                    console.log('Student not found:', studentId);
                     hideLoading();
                     showModal('Error', `Student with ID ${studentId} does not exist. Please register the student first.`, 'error');
                     return;
                 }
+                console.log('Student found:', studentExists);
 
                 // Check if parent ID already exists
-                const { data: existingParent } = await client
+                console.log('Checking if parent ID exists:', parentId);
+                const { data: existingParent, error: parentCheckError } = await client
                     .from('parents')
                     .select('id')
                     .eq('id', parentId)
                     .maybeSingle();
 
+                if (parentCheckError) {
+                    console.error('Error checking parent:', parentCheckError);
+                    throw new Error(`Error checking parent: ${parentCheckError.message}`);
+                }
+
                 if (existingParent) {
+                    console.log('Parent ID already exists:', parentId);
                     hideLoading();
                     showModal('Error', `Parent ID ${parentId} already exists. Please use a different Parent ID.`, 'error');
                     return;
                 }
 
                 // Check if username already exists
-                const { data: existingUser } = await client
+                console.log('Checking if username exists:', parentId);
+                const { data: existingUser, error: userCheckError } = await client
                     .from('users')
                     .select('username')
                     .eq('username', parentId)
                     .maybeSingle();
 
+                if (userCheckError) {
+                    console.error('Error checking username:', userCheckError);
+                    throw new Error(`Error checking username: ${userCheckError.message}`);
+                }
+
                 if (existingUser) {
+                    console.log('Username already exists:', parentId);
                     hideLoading();
                     showModal('Error', `Username ${parentId} already exists. Please use a different Parent ID.`, 'error');
                     return;
                 }
 
                 // Insert parent
-                const { error: parentError } = await client
+                console.log('Inserting parent record...');
+                const { data: parentData, error: parentError } = await client
                     .from('parents')
                     .insert([{
                         id: parentId,
                         name: parentName,
                         student_id: studentId,
-                        phone: phone
-                    }]);
+                        phone: phone || null
+                    }])
+                    .select();
 
-                if (parentError) throw parentError;
+                if (parentError) {
+                    console.error('Error inserting parent:', parentError);
+                    throw new Error(`Failed to create parent record: ${parentError.message}`);
+                }
+                console.log('Parent record created:', parentData);
 
                 // Create user account
-                const { error: userError } = await client
+                console.log('Creating user account...');
+                const { data: userData, error: userError } = await client
                     .from('users')
                     .insert([{
                         username: parentId,
                         password: password,
                         name: parentName,
                         role: 'parent'
-                    }]);
+                    }])
+                    .select();
 
-                if (userError) throw userError;
+                if (userError) {
+                    console.error('Error creating user account:', userError);
+                    // Try to rollback parent creation
+                    await client.from('parents').delete().eq('id', parentId);
+                    throw new Error(`Failed to create user account: ${userError.message}`);
+                }
+                console.log('User account created:', userData);
 
                 hideLoading();
-                showModal('Success', `Parent registered successfully!\n\nParent: ${parentName}\nStudent: ${studentExists.name} (${studentExists.class})\nUsername: ${parentId}`, 'success');
+                showModal('Success', `Parent registered successfully!\n\nParent: ${parentName}\nStudent: ${studentExists.name} (${studentExists.class})\nUsername: ${parentId}\nPassword: ${password}\n\nYou can now login with these credentials.`, 'success');
                 document.getElementById('registerForm').reset();
             } catch (error) {
+                console.error('Registration failed:', error);
                 hideLoading();
-                showModal('Error', error.message, 'error');
+                showModal('Error', `Registration failed: ${error.message}`, 'error');
             }
         });
     } else if (userType === 'teacher') {
@@ -2883,76 +2960,113 @@ window.showRegisterForm = function(userType) {
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const teacherId = document.getElementById('teacherId').value;
-            const teacherName = document.getElementById('teacherName').value;
-            const subjects = document.getElementById('subjects').value;
-            const classes = document.getElementById('classes').value;
-            const phone = document.getElementById('phone').value;
-            const email = document.getElementById('email').value;
+            const teacherId = document.getElementById('teacherId').value.trim();
+            const teacherName = document.getElementById('teacherName').value.trim();
+            const subjects = document.getElementById('subjects').value.trim();
+            const classes = document.getElementById('classes').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
+
+            // Validation
+            if (!teacherId || !teacherName || !subjects || !password) {
+                showModal('Error', 'Please fill in all required fields.', 'error');
+                return;
+            }
 
             try {
                 showLoading();
                 const client = window.supabaseClient.getClient();
 
+                console.log('Starting teacher registration for:', teacherId);
+
                 // Check if teacher ID already exists
-                const { data: existingTeacher } = await client
+                console.log('Checking if teacher ID exists:', teacherId);
+                const { data: existingTeacher, error: teacherCheckError } = await client
                     .from('teachers')
                     .select('id, name')
                     .eq('id', teacherId)
                     .maybeSingle();
 
+                if (teacherCheckError) {
+                    console.error('Error checking teacher:', teacherCheckError);
+                    throw new Error(`Error checking teacher: ${teacherCheckError.message}`);
+                }
+
                 if (existingTeacher) {
+                    console.log('Teacher ID already exists:', teacherId);
                     hideLoading();
                     showModal('Error', `Teacher ID ${teacherId} already exists (${existingTeacher.name}). Please use a different Teacher ID.`, 'error');
                     return;
                 }
 
                 // Check if username already exists
-                const { data: existingUser } = await client
+                console.log('Checking if username exists:', teacherId);
+                const { data: existingUser, error: userCheckError } = await client
                     .from('users')
                     .select('username')
                     .eq('username', teacherId)
                     .maybeSingle();
 
+                if (userCheckError) {
+                    console.error('Error checking username:', userCheckError);
+                    throw new Error(`Error checking username: ${userCheckError.message}`);
+                }
+
                 if (existingUser) {
+                    console.log('Username already exists:', teacherId);
                     hideLoading();
                     showModal('Error', `Username ${teacherId} already exists. Please use a different Teacher ID.`, 'error');
                     return;
                 }
 
                 // Insert teacher
-                const { error: teacherError } = await client
+                console.log('Inserting teacher record...');
+                const { data: teacherData, error: teacherError } = await client
                     .from('teachers')
                     .insert([{
                         id: teacherId,
                         name: teacherName,
                         subjects: subjects,
-                        classes: classes,
-                        phone: phone,
-                        email: email
-                    }]);
+                        classes: classes || null,
+                        phone: phone || null,
+                        email: email || null
+                    }])
+                    .select();
 
-                if (teacherError) throw teacherError;
+                if (teacherError) {
+                    console.error('Error inserting teacher:', teacherError);
+                    throw new Error(`Failed to create teacher record: ${teacherError.message}`);
+                }
+                console.log('Teacher record created:', teacherData);
 
                 // Create user account
-                const { error: userError } = await client
+                console.log('Creating user account...');
+                const { data: userData, error: userError } = await client
                     .from('users')
                     .insert([{
                         username: teacherId,
                         password: password,
                         name: teacherName,
                         role: 'teacher'
-                    }]);
+                    }])
+                    .select();
 
-                if (userError) throw userError;
+                if (userError) {
+                    console.error('Error creating user account:', userError);
+                    // Try to rollback teacher creation
+                    await client.from('teachers').delete().eq('id', teacherId);
+                    throw new Error(`Failed to create user account: ${userError.message}`);
+                }
+                console.log('User account created:', userData);
 
                 hideLoading();
-                showModal('Success', `Teacher registered successfully!\n\nTeacher: ${teacherName}\nID: ${teacherId}\nSubjects: ${subjects}`, 'success');
+                showModal('Success', `Teacher registered successfully!\n\nTeacher: ${teacherName}\nID: ${teacherId}\nSubjects: ${subjects}\nUsername: ${teacherId}\nPassword: ${password}\n\nYou can now login with these credentials.`, 'success');
                 document.getElementById('registerForm').reset();
             } catch (error) {
+                console.error('Registration failed:', error);
                 hideLoading();
-                showModal('Error', error.message, 'error');
+                showModal('Error', `Registration failed: ${error.message}`, 'error');
             }
         });
     }

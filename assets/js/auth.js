@@ -46,7 +46,7 @@ class Auth {
                 .from('users')
                 .select('username')
                 .eq('username', userData.username)
-                .single();
+                .maybeSingle();
 
             if (existingUser) {
                 throw new Error('Username already exists');
@@ -62,7 +62,7 @@ class Auth {
                     role: userData.role
                 }])
                 .select()
-                .single();
+                .maybeSingle();
 
             if (error) {
                 throw error;
