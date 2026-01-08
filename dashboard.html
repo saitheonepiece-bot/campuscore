@@ -2689,24 +2689,43 @@ window.showRegisterForm = function(userType) {
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const studentData = {
-                id: parseInt(document.getElementById('studentId').value),
-                name: document.getElementById('studentName').value,
-                class: document.getElementById('studentClass').value,
-                parent_id: document.getElementById('parentId').value,
-                status: 'active'
-            };
+            const studentId = parseInt(document.getElementById('studentId').value);
+            const studentName = document.getElementById('studentName').value;
+            const studentClass = document.getElementById('studentClass').value;
+            const parentId = document.getElementById('parentId').value;
 
             try {
                 showLoading();
-                const { error } = await window.supabaseClient.getClient()
+                const client = window.supabaseClient.getClient();
+
+                // Check if student ID already exists
+                const { data: existingStudent } = await client
                     .from('students')
-                    .insert([studentData]);
+                    .select('id, name')
+                    .eq('id', studentId)
+                    .single();
+
+                if (existingStudent) {
+                    hideLoading();
+                    showModal('Error', `Student ID ${studentId} already exists (${existingStudent.name}). Please use a different Student ID.`, 'error');
+                    return;
+                }
+
+                // Insert student
+                const { error } = await client
+                    .from('students')
+                    .insert([{
+                        id: studentId,
+                        name: studentName,
+                        class: studentClass,
+                        parent_id: parentId,
+                        status: 'active'
+                    }]);
 
                 if (error) throw error;
 
                 hideLoading();
-                showModal('Success', 'Student registered successfully!', 'success');
+                showModal('Success', `Student registered successfully!\n\nStudent: ${studentName}\nID: ${studentId}\nClass: ${studentClass}`, 'success');
                 document.getElementById('registerForm').reset();
             } catch (error) {
                 hideLoading();
@@ -2754,6 +2773,45 @@ window.showRegisterForm = function(userType) {
                 showLoading();
                 const client = window.supabaseClient.getClient();
 
+                // First, check if the student exists
+                const { data: studentExists } = await client
+                    .from('students')
+                    .select('id, name, class')
+                    .eq('id', studentId)
+                    .single();
+
+                if (!studentExists) {
+                    hideLoading();
+                    showModal('Error', `Student with ID ${studentId} does not exist. Please register the student first.`, 'error');
+                    return;
+                }
+
+                // Check if parent ID already exists
+                const { data: existingParent } = await client
+                    .from('parents')
+                    .select('id')
+                    .eq('id', parentId)
+                    .single();
+
+                if (existingParent) {
+                    hideLoading();
+                    showModal('Error', `Parent ID ${parentId} already exists. Please use a different Parent ID.`, 'error');
+                    return;
+                }
+
+                // Check if username already exists
+                const { data: existingUser } = await client
+                    .from('users')
+                    .select('username')
+                    .eq('username', parentId)
+                    .single();
+
+                if (existingUser) {
+                    hideLoading();
+                    showModal('Error', `Username ${parentId} already exists. Please use a different Parent ID.`, 'error');
+                    return;
+                }
+
                 // Insert parent
                 const { error: parentError } = await client
                     .from('parents')
@@ -2779,7 +2837,7 @@ window.showRegisterForm = function(userType) {
                 if (userError) throw userError;
 
                 hideLoading();
-                showModal('Success', 'Parent registered successfully!', 'success');
+                showModal('Success', `Parent registered successfully!\n\nParent: ${parentName}\nStudent: ${studentExists.name} (${studentExists.class})\nUsername: ${parentId}`, 'success');
                 document.getElementById('registerForm').reset();
             } catch (error) {
                 hideLoading();
@@ -2837,6 +2895,32 @@ window.showRegisterForm = function(userType) {
                 showLoading();
                 const client = window.supabaseClient.getClient();
 
+                // Check if teacher ID already exists
+                const { data: existingTeacher } = await client
+                    .from('teachers')
+                    .select('id, name')
+                    .eq('id', teacherId)
+                    .single();
+
+                if (existingTeacher) {
+                    hideLoading();
+                    showModal('Error', `Teacher ID ${teacherId} already exists (${existingTeacher.name}). Please use a different Teacher ID.`, 'error');
+                    return;
+                }
+
+                // Check if username already exists
+                const { data: existingUser } = await client
+                    .from('users')
+                    .select('username')
+                    .eq('username', teacherId)
+                    .single();
+
+                if (existingUser) {
+                    hideLoading();
+                    showModal('Error', `Username ${teacherId} already exists. Please use a different Teacher ID.`, 'error');
+                    return;
+                }
+
                 // Insert teacher
                 const { error: teacherError } = await client
                     .from('teachers')
@@ -2864,7 +2948,7 @@ window.showRegisterForm = function(userType) {
                 if (userError) throw userError;
 
                 hideLoading();
-                showModal('Success', 'Teacher registered successfully!', 'success');
+                showModal('Success', `Teacher registered successfully!\n\nTeacher: ${teacherName}\nID: ${teacherId}\nSubjects: ${subjects}`, 'success');
                 document.getElementById('registerForm').reset();
             } catch (error) {
                 hideLoading();
