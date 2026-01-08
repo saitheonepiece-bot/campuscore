@@ -3076,18 +3076,53 @@ async function renderAnalytics() {
     const contentArea = document.getElementById('contentArea');
     const client = window.supabaseClient.getClient();
 
-    // Fetch analytics data
-    const [studentsResult, teachersResult, classesResult, attendanceResult] = await Promise.all([
-        client.from('students').select('*'),
-        client.from('teachers').select('*'),
-        client.from('classes').select('*'),
-        client.from('attendance').select('*')
-    ]);
+    try {
+        showLoading();
 
-    const totalStudents = studentsResult.data?.length || 0;
-    const activeStudents = studentsResult.data?.filter(s => s.status === 'active').length || 0;
-    const totalTeachers = teachersResult.data?.length || 0;
-    const totalClasses = classesResult.data?.length || 0;
+        console.log('=== FETCHING ANALYTICS DATA ===');
+
+        // Fetch analytics data
+        const [studentsResult, teachersResult, classesResult, attendanceResult] = await Promise.all([
+            client.from('students').select('*'),
+            client.from('teachers').select('*'),
+            client.from('classes').select('*'),
+            client.from('attendance').select('*')
+        ]);
+
+        console.log('Students result:', studentsResult);
+        console.log('Students data:', studentsResult.data);
+        console.log('Students error:', studentsResult.error);
+        console.log('Total students fetched:', studentsResult.data?.length);
+
+        if (studentsResult.error) {
+            console.error('ERROR fetching students:', studentsResult.error);
+            hideLoading();
+            contentArea.innerHTML = `
+                <div class="card">
+                    <h3>📊 School Analytics</h3>
+                    <p style="color: red;">Error loading students: ${studentsResult.error.message}</p>
+                    <p style="color: orange;">This might be due to Row Level Security (RLS) being enabled. Please disable RLS on the students table or add appropriate policies.</p>
+                </div>
+            `;
+            return;
+        }
+
+        if (teachersResult.error) {
+            console.error('ERROR fetching teachers:', teachersResult.error);
+        }
+
+        if (classesResult.error) {
+            console.error('ERROR fetching classes:', classesResult.error);
+        }
+
+        const totalStudents = studentsResult.data?.length || 0;
+        const activeStudents = studentsResult.data?.filter(s => s.status === 'active').length || 0;
+        const totalTeachers = teachersResult.data?.length || 0;
+        const totalClasses = classesResult.data?.length || 0;
+
+        console.log('Analytics summary:', { totalStudents, activeStudents, totalTeachers, totalClasses });
+
+        hideLoading();
 
     contentArea.innerHTML = `
         <div class="card">
@@ -3194,6 +3229,17 @@ async function renderAnalytics() {
             </div>
         </div>
     `;
+    } catch (error) {
+        console.error('FATAL ERROR in renderAnalytics:', error);
+        hideLoading();
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>📊 School Analytics</h3>
+                <p style="color: red;">Error loading analytics: ${error.message}</p>
+                <p>Please check the console for details.</p>
+            </div>
+        `;
+    }
 }
 
 // Filter students table in analytics
