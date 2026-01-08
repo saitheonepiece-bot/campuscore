@@ -1407,14 +1407,14 @@ async function renderMarkAttendance() {
                 <div class="form-group">
                     <label for="attendancePeriod">Period</label>
                     <select id="attendancePeriod">
-                        <option value="Period 1">Period 1</option>
-                        <option value="Period 2">Period 2</option>
-                        <option value="Period 3">Period 3</option>
-                        <option value="Period 4">Period 4</option>
-                        <option value="Period 5">Period 5</option>
-                        <option value="Period 6">Period 6</option>
-                        <option value="Period 7">Period 7</option>
-                        <option value="Period 8">Period 8</option>
+                        <option value="1">Period 1</option>
+                        <option value="2">Period 2</option>
+                        <option value="3">Period 3</option>
+                        <option value="4">Period 4</option>
+                        <option value="5">Period 5</option>
+                        <option value="6">Period 6</option>
+                        <option value="7">Period 7</option>
+                        <option value="8">Period 8</option>
                     </select>
                 </div>
                 <button class="btn-primary" onclick="loadStudentsForAttendance()">Load Students</button>
@@ -2440,6 +2440,36 @@ async function renderAppointTeacher() {
             showLoading();
             const client = window.supabaseClient.getClient();
 
+            // Check if teacher ID already exists
+            const { data: existingTeacher, error: teacherCheckError } = await client
+                .from('teachers')
+                .select('id')
+                .eq('id', teacherId)
+                .maybeSingle();
+
+            if (teacherCheckError) {
+                throw new Error(`Error checking teacher: ${teacherCheckError.message}`);
+            }
+
+            if (existingTeacher) {
+                throw new Error('Teacher ID already exists');
+            }
+
+            // Check if username already exists
+            const { data: existingUser, error: userCheckError } = await client
+                .from('users')
+                .select('username')
+                .eq('username', teacherId)
+                .maybeSingle();
+
+            if (userCheckError) {
+                throw new Error(`Error checking username: ${userCheckError.message}`);
+            }
+
+            if (existingUser) {
+                throw new Error('Username already exists');
+            }
+
             // Insert teacher
             const { error: teacherError } = await client
                 .from('teachers')
@@ -2451,7 +2481,9 @@ async function renderAppointTeacher() {
                     status: 'active'
                 }]);
 
-            if (teacherError) throw teacherError;
+            if (teacherError) {
+                throw new Error(`Failed to create teacher record: ${teacherError.message}`);
+            }
 
             // Create user account
             const { error: userError } = await client
@@ -2463,7 +2495,11 @@ async function renderAppointTeacher() {
                     role: 'teacher'
                 }]);
 
-            if (userError) throw userError;
+            if (userError) {
+                // Rollback teacher creation
+                await client.from('teachers').delete().eq('id', teacherId);
+                throw new Error(`Failed to create user account: ${userError.message}`);
+            }
 
             hideLoading();
             showModal('Success', `Teacher ${teacherName} appointed successfully!`, 'success');
@@ -3752,14 +3788,14 @@ async function renderCTMarkAttendance() {
                     <div class="form-group">
                         <label for="ctAttendancePeriod">Period</label>
                         <select id="ctAttendancePeriod">
-                            <option value="Period 1">Period 1</option>
-                            <option value="Period 2">Period 2</option>
-                            <option value="Period 3">Period 3</option>
-                            <option value="Period 4">Period 4</option>
-                            <option value="Period 5">Period 5</option>
-                            <option value="Period 6">Period 6</option>
-                            <option value="Period 7">Period 7</option>
-                            <option value="Period 8">Period 8</option>
+                            <option value="1">Period 1</option>
+                            <option value="2">Period 2</option>
+                            <option value="3">Period 3</option>
+                            <option value="4">Period 4</option>
+                            <option value="5">Period 5</option>
+                            <option value="6">Period 6</option>
+                            <option value="7">Period 7</option>
+                            <option value="8">Period 8</option>
                         </select>
                     </div>
                     <button class="btn-primary" onclick="loadCTStudentsForAttendance('${classTeacher.class}')">Load Students</button>
