@@ -3,49 +3,648 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CampusCore - DPS Nadergul | Login</title>
+    <title>CampusCore - Smart School Management System | DPS Nadergul</title>
     <link rel="icon" type="image/png" href="logo.png">
     <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        /* Landing Page Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Navigation */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--color-primary);
+        }
+
+        .navbar-brand img {
+            height: 40px;
+        }
+
+        .navbar-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .navbar-links a {
+            text-decoration: none;
+            color: #333;
+            transition: color 0.3s;
+        }
+
+        .navbar-links a:hover {
+            color: var(--color-primary);
+        }
+
+        .btn-login-nav {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+            color: white;
+            padding: 0.7rem 1.5rem;
+            border-radius: 25px;
+            text-decoration: none;
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-login-nav:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(92, 168, 112, 0.3);
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: white;
+            padding: 6rem 5% 4rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="2" fill="rgba(255,255,255,0.1)"/></svg>');
+            animation: float 20s linear infinite;
+        }
+
+        @keyframes float {
+            from { transform: translateY(0); }
+            to { transform: translateY(-100px); }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            animation: fadeInUp 1s ease;
+        }
+
+        .hero p {
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+            animation: fadeInUp 1s ease 0.2s both;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            animation: fadeInUp 1s ease 0.4s both;
+        }
+
+        .btn-hero {
+            padding: 1rem 2rem;
+            border-radius: 30px;
+            text-decoration: none;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+            border: 2px solid white;
+        }
+
+        .btn-primary-hero {
+            background: white;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .btn-primary-hero:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .btn-secondary-hero {
+            background: transparent;
+            color: white;
+        }
+
+        .btn-secondary-hero:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateY(-3px);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* About Section */
+        .about-section {
+            padding: 5rem 5%;
+            background: white;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            color: #333;
+            margin-bottom: 1rem;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 3rem;
+        }
+
+        .about-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            text-align: center;
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #555;
+        }
+
+        /* Features Section */
+        .features-section {
+            padding: 5rem 5%;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-card p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        /* Roles Section */
+        .roles-section {
+            padding: 5rem 5%;
+            background: white;
+        }
+
+        .roles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .role-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+
+        .role-card:hover {
+            transform: scale(1.05);
+        }
+
+        .role-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .role-card h3 {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Stats Section */
+        .stats-section {
+            padding: 4rem 5%;
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+            color: white;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            max-width: 1000px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .stat-item h2 {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-item p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            padding: 5rem 5%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            text-align: center;
+            color: white;
+        }
+
+        .cta-section h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .cta-section p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+        }
+
+        /* Footer */
+        .footer {
+            padding: 2rem 5%;
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+        }
+
+        .footer p {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Login Modal */
+        .login-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s;
+        }
+
+        .login-modal.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .login-modal-content {
+            background: white;
+            padding: 3rem;
+            border-radius: 20px;
+            max-width: 450px;
+            width: 90%;
+            position: relative;
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 2rem;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.3s;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .login-modal-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-modal-header h2 {
+            color: var(--color-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .login-modal-header img {
+            max-width: 100px;
+            margin-bottom: 1rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 1rem 3%;
+            }
+
+            .navbar-links {
+                gap: 1rem;
+            }
+
+            .navbar-links a {
+                display: none;
+            }
+
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero p {
+                font-size: 1.1rem;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
 </head>
 <body>
 
-<div id="loginScreen" class="login-container">
-    <div class="login-left">
-        <div>
-            <h1>CAMPUSCORE</h1>
-            <p>The Bridge to a Smarter Tomorrow</p>
-        </div>
-        <div class="login-illustration">
-            <img src="logo.png" alt="CampusCore Logo" style="max-width: 150px; height: auto;">
+<!-- Navigation -->
+<nav class="navbar">
+    <div class="navbar-brand">
+        <img src="logo.png" alt="CampusCore Logo">
+        <span>CAMPUSCORE</span>
+    </div>
+    <div class="navbar-links">
+        <a href="#about">About</a>
+        <a href="#features">Features</a>
+        <a href="#roles">For Whom</a>
+        <button class="btn-login-nav" onclick="openLoginModal()">Login</button>
+    </div>
+</nav>
+
+<!-- Hero Section -->
+<section class="hero">
+    <div class="hero-content">
+        <h1>CAMPUSCORE</h1>
+        <p>The Bridge to a Smarter Tomorrow</p>
+        <p style="font-size: 1.1rem; margin-bottom: 2rem;">A comprehensive smart school management system designed for DPS Nadergul, empowering parents, teachers, and administrators with seamless digital solutions.</p>
+        <div class="hero-buttons">
+            <button class="btn-hero btn-primary-hero" onclick="openLoginModal()">Get Started</button>
+            <a href="#about" class="btn-hero btn-secondary-hero">Learn More</a>
         </div>
     </div>
+</section>
 
-    <div class="login-right">
-        <div class="login-box">
-            <div class="login-box-content">
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <img src="campus-logo.png" alt="DPS Nadergul" style="max-width: 120px; height: auto;">
-                </div>
-                <form id="loginForm">
-                    <div class="form-group">
-                        <label for="username">User ID</label>
-                        <input id="username" type="text" placeholder="Enter your User ID" required>
-                    </div>
+<!-- About Section -->
+<section id="about" class="about-section">
+    <h2 class="section-title">What is CampusCore?</h2>
+    <p class="section-subtitle">Your All-in-One School Management Solution</p>
+    <div class="about-content">
+        <p>CampusCore is a comprehensive digital platform designed specifically for Delhi Public School Nadergul, revolutionizing the way schools manage their day-to-day operations. From attendance tracking to homework management, exam scheduling to report card generation, CampusCore brings everything under one unified, easy-to-use system.</p>
+        <br>
+        <p>Built with modern technology and a user-centric approach, CampusCore ensures that parents stay informed, teachers work efficiently, and administrators have complete control—all while providing a seamless experience across all devices.</p>
+    </div>
+</section>
 
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <div class="password-wrapper">
-                            <input id="password" type="password" placeholder="Enter your password" required>
-                            <button id="togglePassword" type="button" class="toggle-password" title="Toggle password visibility">👁️</button>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn-login">Sign In</button>
-                    <div id="loginSuccess" class="login-success"></div>
-                    <div id="loginError" class="login-error"></div>
-                </form>
-            </div>
+<!-- Features Section -->
+<section id="features" class="features-section">
+    <h2 class="section-title">Powerful Features</h2>
+    <p class="section-subtitle">Everything you need to run a modern school</p>
+    <div class="features-grid">
+        <div class="feature-card">
+            <div class="feature-icon">📊</div>
+            <h3>Attendance Management</h3>
+            <p>Real-time attendance tracking with detailed reports and behavior notes for every student.</p>
         </div>
+        <div class="feature-card">
+            <div class="feature-icon">📝</div>
+            <h3>Homework Tracking</h3>
+            <p>Assign, manage, and track homework assignments with ease. Parents stay updated instantly.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">📈</div>
+            <h3>Exam Management</h3>
+            <p>Schedule exams, upload marks, generate report cards, and track student progress effortlessly.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🗓️</div>
+            <h3>Timetable Management</h3>
+            <p>Create and manage class timetables, teacher schedules, and duty rosters efficiently.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">⚠️</div>
+            <h3>Issue Reporting</h3>
+            <p>Report and track issues with proper escalation workflows and resolution tracking.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">📱</div>
+            <h3>Mobile Responsive</h3>
+            <p>Access CampusCore from any device—desktop, tablet, or smartphone—anytime, anywhere.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🔐</div>
+            <h3>Secure & Private</h3>
+            <p>Role-based access control ensures data security and privacy for all users.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">📊</div>
+            <h3>Analytics Dashboard</h3>
+            <p>Comprehensive analytics and insights for administrators to make data-driven decisions.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🎨</div>
+            <h3>CCA Management</h3>
+            <p>Organize and manage co-curricular activities, events, and school calendar efficiently.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Roles Section -->
+<section id="roles" class="roles-section">
+    <h2 class="section-title">Built for Everyone</h2>
+    <p class="section-subtitle">Tailored experiences for each role</p>
+    <div class="roles-grid">
+        <div class="role-card">
+            <div class="role-icon">👨‍👩‍👧‍👦</div>
+            <h3>Parents</h3>
+            <p>Track attendance, view homework, check exam results, and stay connected with your child's progress.</p>
+        </div>
+        <div class="role-card">
+            <div class="role-icon">👨‍🏫</div>
+            <h3>Teachers</h3>
+            <p>Mark attendance, assign homework, upload marks, view duties, and manage classes efficiently.</p>
+        </div>
+        <div class="role-card">
+            <div class="role-icon">👨‍💼</div>
+            <h3>Coordinators</h3>
+            <p>Manage issues, upload exam schedules, handle timetables, and coordinate CCA activities.</p>
+        </div>
+        <div class="role-card">
+            <div class="role-icon">👔</div>
+            <h3>Vice Principals</h3>
+            <p>Appoint teachers, assign duties, register users, view analytics, and manage school operations.</p>
+        </div>
+        <div class="role-card">
+            <div class="role-icon">👨‍🎓</div>
+            <h3>Class Teachers</h3>
+            <p>Special class-specific dashboard, attendance management, and report card generation.</p>
+        </div>
+        <div class="role-card">
+            <div class="role-icon">🎯</div>
+            <h3>Super Admin</h3>
+            <p>Complete administrative control with advanced features and system management capabilities.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Stats Section -->
+<section class="stats-section">
+    <div class="stats-grid">
+        <div class="stat-item">
+            <h2>100%</h2>
+            <p>Digital Experience</p>
+        </div>
+        <div class="stat-item">
+            <h2>6</h2>
+            <p>User Roles</p>
+        </div>
+        <div class="stat-item">
+            <h2>25+</h2>
+            <p>Features</p>
+        </div>
+        <div class="stat-item">
+            <h2>24/7</h2>
+            <p>Accessibility</p>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section">
+    <h2>Ready to Transform Your School?</h2>
+    <p>Join CampusCore and experience the future of school management today.</p>
+    <button class="btn-hero btn-primary-hero" onclick="openLoginModal()">Login Now</button>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+    <p><strong>CampusCore</strong> - Smart School Management System</p>
+    <p>Designed for Delhi Public School Nadergul</p>
+    <p style="margin-top: 1rem; opacity: 0.8;">&copy; 2024 CampusCore. All rights reserved.</p>
+</footer>
+
+<!-- Login Modal -->
+<div id="loginModal" class="login-modal">
+    <div class="login-modal-content">
+        <button class="close-modal" onclick="closeLoginModal()">&times;</button>
+        <div class="login-modal-header">
+            <img src="campus-logo.png" alt="DPS Nadergul">
+            <h2>Welcome Back</h2>
+            <p style="color: #666;">Sign in to access CampusCore</p>
+        </div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">User ID</label>
+                <input id="username" type="text" placeholder="Enter your User ID" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="password-wrapper">
+                    <input id="password" type="password" placeholder="Enter your password" required>
+                    <button id="togglePassword" type="button" class="toggle-password" title="Toggle password visibility">👁️</button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-login">Sign In</button>
+            <div id="loginSuccess" class="login-success"></div>
+            <div id="loginError" class="login-error"></div>
+        </form>
     </div>
 </div>
 
@@ -66,8 +665,6 @@ async function initApp() {
     if (initialized) return;
 
     try {
-        showLoading();
-
         // Initialize Supabase client
         await window.supabaseClient.init();
 
@@ -75,13 +672,35 @@ async function initApp() {
         window.database.init();
 
         initialized = true;
-        hideLoading();
     } catch (error) {
         console.error('Initialization error:', error);
-        hideLoading();
-        showModal('Error', 'Failed to initialize application. Please refresh the page.', 'error');
     }
 }
+
+// Modal functions
+function openLoginModal() {
+    document.getElementById('loginModal').classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeLoginModal() {
+    document.getElementById('loginModal').classList.remove('active');
+    document.body.style.overflow = 'auto';
+}
+
+// Close modal on outside click
+document.getElementById('loginModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeLoginModal();
+    }
+});
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeLoginModal();
+    }
+});
 
 // Password toggle functionality
 document.getElementById('togglePassword').addEventListener('click', function() {
@@ -128,6 +747,20 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
         errorDiv.textContent = error.message || 'Invalid User ID or password';
         errorDiv.style.display = 'block';
     }
+});
+
+// Smooth scrolling for anchor links
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    });
 });
 
 // Initialize app on page load
