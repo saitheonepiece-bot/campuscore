@@ -8,17 +8,29 @@ class Auth {
         try {
             const client = window.supabaseClient.getClient();
 
+            console.log('Attempting login for username:', username);
+
             // Query users table for matching username and password
             const { data, error } = await client
                 .from('users')
                 .select('*')
                 .eq('username', username)
                 .eq('password', password)
-                .single();
+                .maybeSingle();
 
-            if (error || !data) {
+            console.log('Login query result:', { data, error });
+
+            if (error) {
+                console.error('Database error during login:', error);
                 throw new Error('Invalid User ID or password');
             }
+
+            if (!data) {
+                console.log('No user found with username:', username);
+                throw new Error('Invalid User ID or password');
+            }
+
+            console.log('Login successful for user:', data.username, 'Role:', data.role);
 
             // Store user info with auto-detected role from database
             this.currentUser = {
