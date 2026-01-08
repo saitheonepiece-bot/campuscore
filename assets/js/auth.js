@@ -8,7 +8,10 @@ class Auth {
         try {
             const client = window.supabaseClient.getClient();
 
-            console.log('Attempting login for username:', username);
+            console.log('=== LOGIN ATTEMPT START ===');
+            console.log('Username:', username);
+            console.log('Password length:', password.length);
+            console.log('Supabase client:', client);
 
             // Query users table for matching username and password
             const { data, error } = await client
@@ -18,19 +21,22 @@ class Auth {
                 .eq('password', password)
                 .maybeSingle();
 
-            console.log('Login query result:', { data, error });
+            console.log('=== QUERY COMPLETED ===');
+            console.log('Data received:', data);
+            console.log('Error received:', error);
+            console.log('Error details:', error ? JSON.stringify(error) : 'No error');
 
             if (error) {
-                console.error('Database error during login:', error);
-                throw new Error('Invalid User ID or password');
+                console.error('DATABASE ERROR:', error.message, error.code, error.details, error.hint);
+                throw new Error(`Database error: ${error.message}`);
             }
 
             if (!data) {
-                console.log('No user found with username:', username);
+                console.log('NO USER FOUND - Username or password incorrect');
                 throw new Error('Invalid User ID or password');
             }
 
-            console.log('Login successful for user:', data.username, 'Role:', data.role);
+            console.log('LOGIN SUCCESS - User:', data.username, 'Role:', data.role, 'Name:', data.name);
 
             // Store user info with auto-detected role from database
             this.currentUser = {
@@ -42,9 +48,11 @@ class Auth {
             // Save to sessionStorage securely
             sessionStorage.setItem('currentUser', JSON.stringify(this.currentUser));
 
+            console.log('=== LOGIN COMPLETE ===');
             return this.currentUser;
         } catch (error) {
-            console.error('Login error:', error);
+            console.error('LOGIN FAILED:', error.message);
+            console.error('Full error object:', error);
             throw error;
         }
     }
