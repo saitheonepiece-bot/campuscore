@@ -240,15 +240,26 @@ The application uses the following main tables:
 - Ensure your Supabase project is active
 - Check browser console for detailed error messages
 
-### Issue: "Invalid username or password"
+### Issue: "Invalid username or password" or Login not working
+- **MOST COMMON FIX**: Disable Row Level Security (RLS) on all tables
+- Go to Supabase Dashboard → SQL Editor → New Query
+- Copy all contents from `disable-rls.sql` file
+- Paste and click "Run"
+- Clear browser cache and try login again
 - Verify you've run the `supabase-init-data.sql` script
 - Check the username and password match one from the credentials list
-- Ensure the selected role matches the user's role in the database
 
-### Issue: Database errors
+### Issue: VP Analytics not showing students or "No students found"
+- **MOST COMMON FIX**: Disable Row Level Security (RLS) - see fix above
+- Run the `disable-rls.sql` script in Supabase SQL Editor
+- Clear browser cache and refresh the page
+- Check browser console (F12) for detailed error messages
+
+### Issue: Database errors or 406 errors
 - Verify all tables were created by running `supabase-schema.sql`
-- Check Row Level Security is disabled (for development)
+- **IMPORTANT**: Disable Row Level Security by running `disable-rls.sql`
 - Inspect the Supabase logs in the dashboard
+- Check browser console for detailed error messages
 
 ### Issue: Page not loading on GitHub Pages
 - Ensure `.nojekyll` file exists in the root directory
