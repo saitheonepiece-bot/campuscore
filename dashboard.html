@@ -1951,12 +1951,24 @@ async function renderTeacherIssues() {
                 <h4>Report New Issue</h4>
                 <form id="issueForm" style="max-width: 600px;">
                     <div class="form-group">
-                        <label for="issueTitle">Title</label>
+                        <label for="issueClass">Class *</label>
+                        <select id="issueClass" required onchange="loadStudentsForIssue()">
+                            <option value="">-- Select Class --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="issueStudent">Student Name *</label>
+                        <select id="issueStudent" required>
+                            <option value="">-- Select Student --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="issueTitle">Title *</label>
                         <input type="text" id="issueTitle" placeholder="Brief description" required>
                     </div>
                     <div class="form-group">
-                        <label for="issueDescription">Description</label>
-                        <textarea id="issueDescription" rows="4" placeholder="Detailed description"></textarea>
+                        <label for="issueDescription">Issue Description *</label>
+                        <textarea id="issueDescription" rows="5" placeholder="Describe the issue in detail..." required></textarea>
                     </div>
                     <div class="form-group">
                         <label for="issuePriority">Priority</label>
@@ -1997,10 +2009,16 @@ async function renderTeacherIssues() {
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
 
+            const studentId = document.getElementById('issueStudent').value;
+            const studentName = document.getElementById('issueStudent').selectedOptions[0].text;
+
             const issueData = {
                 title: document.getElementById('issueTitle').value,
                 description: document.getElementById('issueDescription').value,
                 priority: document.getElementById('issuePriority').value,
+                student_id: studentId,
+                student_name: studentName,
+                class: document.getElementById('issueClass').value,
                 reported_by: currentUser.username,
                 status: 'pending'
             };
@@ -2024,8 +2042,39 @@ async function renderTeacherIssues() {
     }
 }
 
-window.showCreateTeacherIssue = function() {
+window.showCreateTeacherIssue = async function() {
     document.getElementById('createIssueForm').style.display = 'block';
+
+    // Load classes
+    const client = window.supabaseClient.getClient();
+    const { data: classes } = await client
+        .from('classes')
+        .select('name')
+        .order('name');
+
+    const classSelect = document.getElementById('issueClass');
+    classSelect.innerHTML = '<option value="">-- Select Class --</option>' +
+        (classes?.map(c => `<option value="${c.name}">${c.name}</option>`).join('') || '');
+};
+
+window.loadStudentsForIssue = async function() {
+    const className = document.getElementById('issueClass').value;
+    if (!className) {
+        document.getElementById('issueStudent').innerHTML = '<option value="">-- Select Student --</option>';
+        return;
+    }
+
+    const client = window.supabaseClient.getClient();
+    const { data: students } = await client
+        .from('students')
+        .select('id, name')
+        .eq('class', className)
+        .eq('status', 'active')
+        .order('name');
+
+    const studentSelect = document.getElementById('issueStudent');
+    studentSelect.innerHTML = '<option value="">-- Select Student --</option>' +
+        (students?.map(s => `<option value="${s.id}">${s.name} (${s.id})</option>`).join('') || '');
 };
 
 // Coordinator tab functions
@@ -2555,50 +2604,67 @@ async function renderVPIssues() {
     const contentArea = document.getElementById('contentArea');
     const client = window.supabaseClient.getClient();
 
-    const { data: issues } = await client
+    const { data: allIssues } = await client
         .from('issues')
         .select('*')
         .order('created_at', { ascending: false });
+
+    const pendingIssues = allIssues?.filter(i => i.status !== 'resolved') || [];
+    const resolvedIssues = allIssues?.filter(i => i.status === 'resolved') || [];
 
     contentArea.innerHTML = `
         <div class="card">
             <h3>⚠️ Issues Management</h3>
 
             <div style="margin-bottom: 20px;">
-                <button class="btn-primary" onclick="showCreateIssueModal()">+ Create New Issue</button>
+                <button class="btn-tab active" onclick="showIssueTab('pending')" id="tab-pending">📋 Pending (${pendingIssues.length})</button>
+                <button class="btn-tab" onclick="showIssueTab('history')" id="tab-history">📚 History (${resolvedIssues.length})</button>
             </div>
 
-            <div style="margin-bottom: 20px;">
-                <button class="btn-filter" onclick="filterIssues('all')" id="filter-all">All (${issues.length})</button>
-                <button class="btn-filter" onclick="filterIssues('pending')" id="filter-pending">Pending (${issues.filter(i => i.status === 'pending').length})</button>
-                <button class="btn-filter" onclick="filterIssues('in_progress')" id="filter-in_progress">In Progress (${issues.filter(i => i.status === 'in_progress').length})</button>
-                <button class="btn-filter" onclick="filterIssues('resolved')" id="filter-resolved">Resolved (${issues.filter(i => i.status === 'resolved').length})</button>
-            </div>
-
-            <div id="issuesList">
-                ${issues.map(issue => `
-                    <div class="issue-card" data-status="${issue.status}">
+            <div id="pending-tab">
+                ${pendingIssues.length > 0 ? pendingIssues.map(issue => `
+                    <div class="issue-card">
                         <div style="display: flex; justify-content: space-between; align-items: start;">
-                            <div>
+                            <div style="flex: 1;">
                                 <h4>${issue.title}</h4>
+                                ${issue.student_name ? `<p style="color: #5CA870; font-weight: bold; margin: 5px 0;">Student: ${issue.student_name} ${issue.class ? `(${issue.class})` : ''}</p>` : ''}
                                 <p style="color: #666; margin: 5px 0;">${issue.description || 'No description'}</p>
                                 <div style="margin-top: 10px;">
                                     <span class="badge badge-${issue.priority}">${issue.priority}</span>
                                     <span class="badge badge-${issue.status}">${issue.status}</span>
-                                    ${issue.reported_by ? `<span style="color: #666; font-size: 0.9em;">Reported by: ${issue.reported_by}</span>` : ''}
+                                    ${issue.reported_by ? `<span style="color: #666; font-size: 0.9em; margin-left: 10px;">By: ${issue.reported_by}</span>` : ''}
+                                    <span style="color: #999; font-size: 0.85em; margin-left: 10px;">${new Date(issue.created_at).toLocaleDateString()}</span>
                                 </div>
                             </div>
                             <div>
-                                <select onchange="updateIssueStatus(${issue.id}, this.value)" style="padding: 5px;">
+                                <select onchange="updateIssueStatus(${issue.id}, this.value)" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
                                     <option value="pending" ${issue.status === 'pending' ? 'selected' : ''}>Pending</option>
                                     <option value="in_progress" ${issue.status === 'in_progress' ? 'selected' : ''}>In Progress</option>
-                                    <option value="resolved" ${issue.status === 'resolved' ? 'selected' : ''}>Resolved</option>
+                                    <option value="resolved" ${issue.status === 'resolved' ? 'selected' : ''}>✅ Resolved</option>
                                     <option value="escalated" ${issue.status === 'escalated' ? 'selected' : ''}>Escalated</option>
                                 </select>
                             </div>
                         </div>
                     </div>
-                `).join('')}
+                `).join('') : '<p style="padding: 20px; text-align: center; color: #666;">✅ No pending issues! All issues have been resolved.</p>'}
+            </div>
+
+            <div id="history-tab" style="display: none;">
+                ${resolvedIssues.length > 0 ? resolvedIssues.map(issue => `
+                    <div class="issue-card" style="background: #f8f9fa; border-color: #d4edda;">
+                        <div>
+                            <h4 style="color: #28a745;">✅ ${issue.title}</h4>
+                            ${issue.student_name ? `<p style="color: #5CA870; font-weight: bold; margin: 5px 0;">Student: ${issue.student_name} ${issue.class ? `(${issue.class})` : ''}</p>` : ''}
+                            <p style="color: #666; margin: 5px 0;">${issue.description || 'No description'}</p>
+                            <div style="margin-top: 10px;">
+                                <span class="badge badge-${issue.priority}">${issue.priority}</span>
+                                <span class="badge badge-resolved">✅ Resolved</span>
+                                ${issue.reported_by ? `<span style="color: #666; font-size: 0.9em; margin-left: 10px;">By: ${issue.reported_by}</span>` : ''}
+                                <span style="color: #999; font-size: 0.85em; margin-left: 10px;">${new Date(issue.created_at).toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('') : '<p style="padding: 20px; text-align: center; color: #666;">No resolved issues in history yet.</p>'}
             </div>
         </div>
 
@@ -2625,35 +2691,36 @@ async function renderVPIssues() {
             .badge-in_progress { background: #cce5ff; color: #004085; }
             .badge-resolved { background: #d4edda; color: #155724; }
             .badge-escalated { background: #f8d7da; color: #721c24; }
-            .btn-filter {
-                padding: 8px 15px;
+            .btn-tab {
+                padding: 10px 20px;
                 margin-right: 10px;
-                border: 1px solid #ddd;
-                background: white;
+                border: none;
+                background: #f0f0f0;
                 cursor: pointer;
-                border-radius: 4px;
+                border-radius: 8px 8px 0 0;
+                font-size: 1em;
+                transition: all 0.3s;
             }
-            .btn-filter.active {
+            .btn-tab.active {
                 background: var(--color-primary);
                 color: white;
-                border-color: var(--color-primary);
+            }
+            .btn-tab:hover {
+                background: var(--color-secondary);
+                color: white;
             }
         </style>
     `;
 }
 
-window.filterIssues = function(status) {
-    const issues = document.querySelectorAll('.issue-card');
-    document.querySelectorAll('.btn-filter').forEach(btn => btn.classList.remove('active'));
-    document.getElementById(`filter-${status}`).classList.add('active');
+window.showIssueTab = function(tab) {
+    // Toggle tabs
+    document.querySelectorAll('.btn-tab').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(`tab-${tab}`).classList.add('active');
 
-    issues.forEach(issue => {
-        if (status === 'all') {
-            issue.style.display = 'block';
-        } else {
-            issue.style.display = issue.dataset.status === status ? 'block' : 'none';
-        }
-    });
+    // Toggle content
+    document.getElementById('pending-tab').style.display = tab === 'pending' ? 'block' : 'none';
+    document.getElementById('history-tab').style.display = tab === 'history' ? 'block' : 'none';
 };
 
 window.updateIssueStatus = async function(issueId, newStatus) {
@@ -2667,7 +2734,11 @@ window.updateIssueStatus = async function(issueId, newStatus) {
         if (error) throw error;
 
         hideLoading();
-        showModal('Success', 'Issue status updated!', 'success');
+        if (newStatus === 'resolved') {
+            showModal('Success', 'Issue resolved and moved to history!', 'success');
+        } else {
+            showModal('Success', 'Issue status updated!', 'success');
+        }
         renderVPIssues();
     } catch (error) {
         hideLoading();
