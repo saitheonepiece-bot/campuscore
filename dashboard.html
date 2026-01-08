@@ -543,7 +543,7 @@ async function renderViewHomework() {
             .from('parents')
             .select('student_id')
             .eq('id', currentUser.username)
-            .single();
+            .maybeSingle();
 
         if (!parent) {
             contentArea.innerHTML = `
@@ -560,7 +560,7 @@ async function renderViewHomework() {
             .from('students')
             .select('class, name')
             .eq('id', parent.student_id)
-            .single();
+            .maybeSingle();
 
         if (!student) {
             contentArea.innerHTML = `
@@ -634,7 +634,7 @@ async function renderViewExamResults() {
             .from('parents')
             .select('student_id')
             .eq('id', currentUser.username)
-            .single();
+            .maybeSingle();
 
         if (!parent) {
             contentArea.innerHTML = `
@@ -651,7 +651,7 @@ async function renderViewExamResults() {
             .from('students')
             .select('name')
             .eq('id', parent.student_id)
-            .single();
+            .maybeSingle();
 
         // Get exam results for student
         const { data: results } = await client
@@ -721,7 +721,7 @@ async function renderViewReportCards() {
             .from('parents')
             .select('student_id')
             .eq('id', currentUser.username)
-            .single();
+            .maybeSingle();
 
         if (!parent) {
             contentArea.innerHTML = `
@@ -738,7 +738,7 @@ async function renderViewReportCards() {
             .from('students')
             .select('name, class')
             .eq('id', parent.student_id)
-            .single();
+            .maybeSingle();
 
         // Get report cards for student
         const { data: reportCards } = await client
@@ -807,7 +807,7 @@ async function renderExamSchedule() {
             .from('parents')
             .select('student_id')
             .eq('id', currentUser.username)
-            .single();
+            .maybeSingle();
 
         if (!parent) {
             contentArea.innerHTML = `
@@ -824,7 +824,7 @@ async function renderExamSchedule() {
             .from('students')
             .select('class, name')
             .eq('id', parent.student_id)
-            .single();
+            .maybeSingle();
 
         if (!student) {
             contentArea.innerHTML = `
@@ -1624,7 +1624,7 @@ async function renderMyClasses() {
         .from('teachers')
         .select('*')
         .eq('id', currentUser.username)
-        .single();
+        .maybeSingle();
 
     contentArea.innerHTML = `
         <div class="card">
@@ -1958,7 +1958,7 @@ window.loadTimetableForClass = async function() {
         .from('timetables')
         .select('*')
         .eq('class', className)
-        .single();
+        .maybeSingle();
 
     document.getElementById('timetableContent').innerHTML = `
         <div style="margin-top: 30px;">
@@ -2703,7 +2703,7 @@ window.showRegisterForm = function(userType) {
                     .from('students')
                     .select('id, name')
                     .eq('id', studentId)
-                    .single();
+                    .maybeSingle();
 
                 if (existingStudent) {
                     hideLoading();
@@ -2778,7 +2778,7 @@ window.showRegisterForm = function(userType) {
                     .from('students')
                     .select('id, name, class')
                     .eq('id', studentId)
-                    .single();
+                    .maybeSingle();
 
                 if (!studentExists) {
                     hideLoading();
@@ -2791,7 +2791,7 @@ window.showRegisterForm = function(userType) {
                     .from('parents')
                     .select('id')
                     .eq('id', parentId)
-                    .single();
+                    .maybeSingle();
 
                 if (existingParent) {
                     hideLoading();
@@ -2804,7 +2804,7 @@ window.showRegisterForm = function(userType) {
                     .from('users')
                     .select('username')
                     .eq('username', parentId)
-                    .single();
+                    .maybeSingle();
 
                 if (existingUser) {
                     hideLoading();
@@ -2900,7 +2900,7 @@ window.showRegisterForm = function(userType) {
                     .from('teachers')
                     .select('id, name')
                     .eq('id', teacherId)
-                    .single();
+                    .maybeSingle();
 
                 if (existingTeacher) {
                     hideLoading();
@@ -2913,7 +2913,7 @@ window.showRegisterForm = function(userType) {
                     .from('users')
                     .select('username')
                     .eq('username', teacherId)
-                    .single();
+                    .maybeSingle();
 
                 if (existingUser) {
                     hideLoading();
@@ -3125,7 +3125,7 @@ async function renderClassDashboard() {
             .from('class_teachers')
             .select('*')
             .eq('id', currentUser.username)
-            .single();
+            .maybeSingle();
 
         if (!classTeacher) {
             contentArea.innerHTML = `
@@ -3228,7 +3228,7 @@ async function renderCTMarkAttendance() {
             .from('class_teachers')
             .select('*')
             .eq('id', currentUser.username)
-            .single();
+            .maybeSingle();
 
         if (!classTeacher) {
             contentArea.innerHTML = `
@@ -3371,7 +3371,7 @@ async function renderReportCards() {
             .from('class_teachers')
             .select('*')
             .eq('id', currentUser.username)
-            .single();
+            .maybeSingle();
 
         if (!classTeacher) {
             contentArea.innerHTML = `
