@@ -73,6 +73,8 @@ INSERT INTO users (username, password, name, role) VALUES
 ('VP001', 'VP123', 'Sirisha Vice Principal', 'viceprincipal'),
 -- Super Vice Principal
 ('AP000123', 'DPSSITE123', 'Super Principal', 'superviceprincipal'),
+-- Hassan Sir (Admin)
+('HASSAN001', 'hassan123', 'Hassan Sir', 'hassan'),
 -- Class Teachers
 ('CT10A', 'CLASS123', 'Class Teacher 10A', 'classteacher'),
 ('CT8B', 'CLASS123', 'Class Teacher 8B', 'classteacher')
