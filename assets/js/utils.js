@@ -133,7 +133,7 @@ function showLoading() {
     loader.innerHTML = `
         <div class="loading-spinner">
             <div class="spinner"></div>
-            <p>Loading...</p>
+            <p class="loading-text">Loading...</p>
         </div>
     `;
     document.body.appendChild(loader);
