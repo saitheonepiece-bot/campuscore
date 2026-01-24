@@ -182,16 +182,13 @@ const menuItems = {
     ],
     coordinator: [
         { id: 'home', icon: '🏠', label: 'Dashboard' },
-        { id: 'coordissues', icon: '⚠️', label: 'Issues' },
-        { id: 'issuesdashboard', icon: '📋', label: 'Issues Dashboard' }, // PROMPT 3 - NEW CODE
-        { id: 'coordinatoranalytics', icon: '📊', label: 'Analytics Dashboard' }, // PROMPT 3 - NEW CODE
-        { id: 'attendanceanalytics', icon: '📈', label: 'Attendance Analytics' }, // PROMPT 3 - NEW CODE
-        { id: 'performanceanalytics', icon: '🎯', label: 'Performance Analytics' }, // PROMPT 3 - NEW CODE
+        { id: 'coordinatoranalytics', icon: '📊', label: 'Analytics Dashboard' },
+        { id: 'attendanceanalytics', icon: '📈', label: 'Attendance Analytics' },
+        { id: 'performanceanalytics', icon: '🎯', label: 'Performance Analytics' },
         { id: 'uploadexam', icon: '📋', label: 'Upload Exam' },
         { id: 'classes', icon: '👥', label: 'Classes' },
         { id: 'managetimetable', icon: '🗓️', label: 'Manage Timetable' },
         { id: 'uploadcca', icon: '🎨', label: 'Upload CCA' },
-        { id: 'bulkupload', icon: '📤', label: 'Bulk Upload' }, // PROMPT 2 - NEW CODE
         { id: 'timetable', icon: '📅', label: 'View Timetable' },
         { id: 'profile', icon: '👤', label: 'Profile' },
         { id: 'changepassword', icon: '🔐', label: 'Change Password' }
@@ -262,6 +259,7 @@ const menuItems = {
         { id: 'home', icon: '🏠', label: 'Dashboard' },
         { id: 'classdashboard', icon: '📊', label: 'Class Dashboard' },
         { id: 'ctmarkattendance', icon: '✅', label: 'Mark Attendance' },
+        { id: 'marksapproval', icon: '✅', label: 'Marks Approval' },
         { id: 'reportcards', icon: '📄', label: 'Report Cards' },
         { id: 'ctmanagetimetable', icon: '📅', label: 'Upload Timetable' },
         { id: 'myduties', icon: '📋', label: 'My Duties' },
@@ -2883,97 +2881,122 @@ async function renderUploadCCA() {
     const contentArea = document.getElementById('contentArea');
     const client = window.supabaseClient.getClient();
 
-    // Get existing CCA events
-    const { data: ccaEvents } = await client
+    // Get existing CCA calendar image
+    const { data: ccaData } = await client
         .from('cca_calendars')
         .select('*')
-        .order('event_date', { ascending: false })
-        .limit(20);
+        .maybeSingle();
 
     contentArea.innerHTML = `
         <div class="card">
-            <h3>🎨 Upload CCA Events</h3>
+            <h3>🎨 Upload CCA Calendar</h3>
+            <p style="color: #666; margin-bottom: 20px;">Upload an image of the CCA (Co-Curricular Activities) calendar for students and parents to view.</p>
 
-            <h4>Create New CCA Event</h4>
-            <form id="ccaForm" style="max-width: 600px; margin-bottom: 40px;">
-                <div class="form-group">
-                    <label for="ccaName">Event Name</label>
-                    <input type="text" id="ccaName" placeholder="e.g., Annual Sports Day" required>
+            ${ccaData && ccaData.image_data ? `
+                <div style="margin-bottom: 30px;">
+                    <h4>Current CCA Calendar:</h4>
+                    <img src="${ccaData.image_data}" alt="CCA Calendar"
+                         style="max-width: 100%; border: 2px solid #ddd; border-radius: 12px; margin-top: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    <p style="color: #888; font-size: 14px; margin-top: 10px;">Uploaded by: ${ccaData.created_by || 'N/A'}</p>
                 </div>
-                <div class="form-group">
-                    <label for="ccaDate">Event Date</label>
-                    <input type="date" id="ccaDate" required>
-                </div>
-                <div class="form-group">
-                    <label for="ccaTime">Event Time</label>
-                    <input type="text" id="ccaTime" placeholder="e.g., 9:00 AM - 4:00 PM">
-                </div>
-                <div class="form-group">
-                    <label for="ccaLocation">Location</label>
-                    <input type="text" id="ccaLocation" placeholder="e.g., School Auditorium">
-                </div>
-                <div class="form-group">
-                    <label for="ccaDescription">Description</label>
-                    <textarea id="ccaDescription" rows="3" placeholder="Event details"></textarea>
-                </div>
-                <button type="submit" class="btn-primary">Create Event</button>
-            </form>
+            ` : '<p style="margin-bottom: 20px; padding: 20px; background: #f9f9f9; border-radius: 8px; color: #888;">📋 No CCA calendar uploaded yet.</p>'}
 
-            <h4>Recent CCA Events</h4>
-            ${ccaEvents && ccaEvents.length > 0 ? `
-                <table style="width: 100%; margin-top: 15px;">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Event Name</th>
-                            <th>Time</th>
-                            <th>Location</th>
-                            <th>Created By</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${ccaEvents.map(event => `
-                            <tr>
-                                <td>${new Date(event.event_date).toLocaleDateString()}</td>
-                                <td><strong>${event.event_name}</strong></td>
-                                <td>${event.event_time || 'TBA'}</td>
-                                <td>${event.location || 'TBA'}</td>
-                                <td>${event.created_by || 'N/A'}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            ` : '<p style="margin-top: 15px;">No CCA events created yet.</p>'}
+            <div style="padding: 25px; background: linear-gradient(135deg, #f8fdf9 0%, #e8f5e9 100%); border-radius: 12px; border: 2px dashed #5ca870;">
+                <h4 style="margin-bottom: 15px;">📤 Upload New CCA Calendar Image</h4>
+                <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                    Upload a clear image of the CCA calendar. This will be visible to all students and parents.
+                    <br><strong>Supported formats:</strong> JPG, PNG, GIF (Max 5MB)
+                </p>
+                <form id="ccaImageForm">
+                    <div class="form-group">
+                        <label for="ccaImageInput">Select Image</label>
+                        <input type="file" id="ccaImageInput" accept="image/*"
+                               style="padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; width: 100%; background: white;">
+                    </div>
+                    <div id="ccaImagePreview" style="margin-top: 15px; display: none;">
+                        <h5 style="margin-bottom: 10px;">Preview:</h5>
+                        <img id="ccaPreviewImg" style="max-width: 100%; max-height: 500px; border: 2px solid #5ca870; border-radius: 12px; box-shadow: 0 4px 12px rgba(92, 168, 112, 0.2);">
+                    </div>
+                    <button type="submit" class="btn-primary" style="margin-top: 20px; padding: 12px 30px;">
+                        📤 Upload CCA Calendar
+                    </button>
+                </form>
+            </div>
         </div>
     `;
 
+    // Add image preview functionality
+    const imageInput = document.getElementById('ccaImageInput');
+    imageInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            // Check file size (5MB limit)
+            if (file.size > 5 * 1024 * 1024) {
+                showModal('Error', 'Image size must be less than 5MB', 'error');
+                imageInput.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                document.getElementById('ccaPreviewImg').src = event.target.result;
+                document.getElementById('ccaImagePreview').style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Add form submit handler
     const currentUser = window.auth.getCurrentUser();
-    document.getElementById('ccaForm').addEventListener('submit', async function(e) {
+    document.getElementById('ccaImageForm').addEventListener('submit', async function(e) {
         e.preventDefault();
 
-        const ccaData = {
-            event_name: document.getElementById('ccaName').value,
-            event_date: document.getElementById('ccaDate').value,
-            event_time: document.getElementById('ccaTime').value || null,
-            location: document.getElementById('ccaLocation').value || null,
-            description: document.getElementById('ccaDescription').value || null,
-            created_by: currentUser.username
-        };
+        const file = imageInput.files[0];
+        if (!file) {
+            showModal('Error', 'Please select an image to upload', 'error');
+            return;
+        }
 
         try {
             showLoading();
-            const { error } = await client
-                .from('cca_calendars')
-                .insert([ccaData]);
 
-            if (error) throw error;
+            // Convert image to base64
+            const reader = new FileReader();
+            reader.onload = async function(event) {
+                const base64Image = event.target.result;
 
-            hideLoading();
-            showModal('Success', 'CCA event created successfully!', 'success');
-            renderUploadCCA(); // Refresh
+                if (ccaData) {
+                    // Update existing CCA calendar
+                    const { error } = await client
+                        .from('cca_calendars')
+                        .update({
+                            image_data: base64Image,
+                            created_by: currentUser.username,
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq('id', ccaData.id);
+
+                    if (error) throw error;
+                } else {
+                    // Create new CCA calendar
+                    const { error } = await client
+                        .from('cca_calendars')
+                        .insert([{
+                            image_data: base64Image,
+                            created_by: currentUser.username
+                        }]);
+
+                    if (error) throw error;
+                }
+
+                hideLoading();
+                showModal('Success', 'CCA calendar uploaded successfully!', 'success');
+                renderUploadCCA(); // Refresh
+            };
+            reader.readAsDataURL(file);
         } catch (error) {
             hideLoading();
-            showModal('Error', error.message || 'Failed to create CCA event', 'error');
+            showModal('Error', `Failed to upload CCA calendar: ${error.message}`, 'error');
         }
     });
 }
