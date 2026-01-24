@@ -226,6 +226,7 @@ const menuItems = {
     { id: 'studentanalysis', icon: '👥', label: 'Student Analysis' },
     { id: 'removestudent', icon: '🚫', label: 'Remove Student' },
     { id: 'deletestudent', icon: '❌', label: 'Delete Student' },
+    { id: 'manageparents', icon: '👨‍👩‍👧', label: 'Manage Parents' },
     { id: 'holidays', icon: '🎉', label: 'Holidays' },
     { id: 'register', icon: '📝', label: 'Register' },
     { id: 'timetable', icon: '🗓️', label: 'Timetable' },
@@ -234,16 +235,26 @@ const menuItems = {
     ],
     superviceprincipal: [
         { id: 'home', icon: '🏠', label: 'Dashboard' },
+        { id: 'classmanagement', icon: '🏫', label: 'Class Management' },
+        { id: 'homeworkmanagement', icon: '📚', label: 'Homework Management' },
+        { id: 'timetablemanagement', icon: '🗓️', label: 'Timetable Management' },
+        { id: 'teacherschedule', icon: '👨‍🏫', label: 'Teacher Schedule' },
+        { id: 'examschedule', icon: '📝', label: 'Exam Schedule' },
+        { id: 'manualmarks', icon: '📊', label: 'Manual Marks Upload' },
+        { id: 'bulkupload', icon: '📤', label: 'New Students Upload' },
+        { id: 'marksapproval', icon: '✅', label: 'Marks Approval' },
         { id: 'appointteacher', icon: '👨‍🏫', label: 'Appoint Teacher' },
         { id: 'assignduties', icon: '📋', label: 'Assign Duties' },
         { id: 'svpissues', icon: '⚠️', label: 'Issues' },
-        { id: 'issuesdashboard', icon: '📋', label: 'Issues Dashboard' }, // PROMPT 3 - NEW CODE
-        { id: 'principalanalytics', icon: '📊', label: 'Analytics Dashboard' }, // PROMPT 3 - NEW CODE
-        { id: 'attendanceanalytics', icon: '📈', label: 'Attendance Analytics' }, // PROMPT 3 - NEW CODE
-        { id: 'performanceanalytics', icon: '🎯', label: 'Performance Analytics' }, // PROMPT 3 - NEW CODE
+        { id: 'issuesdashboard', icon: '📋', label: 'Issues Dashboard' },
+        { id: 'escalatedissues', icon: '🚨', label: 'Escalated Issues' },
+        { id: 'principalanalytics', icon: '📊', label: 'Analytics Dashboard' },
+        { id: 'attendanceanalytics', icon: '📈', label: 'Attendance Analytics' },
+        { id: 'performanceanalytics', icon: '🎯', label: 'Performance Analytics' },
+        { id: 'studentanalysis', icon: '👥', label: 'Student Analysis' },
         { id: 'removestudent', icon: '🚫', label: 'Remove Student' },
         { id: 'deletestudent', icon: '❌', label: 'Delete Student' },
-        { id: 'bulkupload', icon: '📤', label: 'Bulk Upload' }, // PROMPT 2 - NEW CODE
+        { id: 'manageparents', icon: '👨‍👩‍👧', label: 'Manage Parents' },
         { id: 'holidays', icon: '🎉', label: 'Holidays' },
         { id: 'register', icon: '📝', label: 'Register' },
         { id: 'timetable', icon: '🗓️', label: 'Timetable' },
@@ -548,6 +559,9 @@ function renderTab(tabId) {
             break;
         case 'register':
             renderRegister();
+            break;
+        case 'manageparents':
+            renderManageParents();
             break;
         case 'analytics':
             renderAnalytics();
@@ -5995,6 +6009,216 @@ window.deleteStudentPermanent = async function(studentId, studentName) {
     });
 };
 
+async function renderManageParents() {
+    const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+
+    try {
+        showLoading();
+
+        // Fetch all parents with their student information
+        const { data: parents, error } = await client
+            .from('parents')
+            .select(`
+                id,
+                name,
+                phone,
+                student_id,
+                status,
+                students (
+                    id,
+                    name,
+                    class
+                )
+            `)
+            .order('id', { ascending: true });
+
+        if (error) {
+            console.error('Error fetching parents:', error);
+            throw error;
+        }
+
+        hideLoading();
+
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>👨‍👩‍👧 Manage Parents</h3>
+                <p style="color: #666; margin-bottom: 20px;">
+                    View, delete, or deactivate parent accounts. Deactivated parents cannot login but their data is preserved.
+                </p>
+
+                ${parents && parents.length > 0 ? `
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th>Parent ID</th>
+                                    <th>Parent Name</th>
+                                    <th>Phone</th>
+                                    <th>Student ID</th>
+                                    <th>Student Name</th>
+                                    <th>Class</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${parents.map(parent => {
+                                    const student = parent.students || {};
+                                    const isActive = !parent.status || parent.status === 'active';
+                                    const statusBadge = isActive
+                                        ? '<span class="badge" style="background: #4CAF50;">Active</span>'
+                                        : '<span class="badge" style="background: #FF9800;">Inactive</span>';
+
+                                    return `
+                                        <tr id="parent-row-${parent.id}">
+                                            <td>${parent.id}</td>
+                                            <td>${parent.name}</td>
+                                            <td>${parent.phone || 'N/A'}</td>
+                                            <td>${parent.student_id}</td>
+                                            <td>${student.name || 'N/A'}</td>
+                                            <td>${student.class || 'N/A'}</td>
+                                            <td>${statusBadge}</td>
+                                            <td>
+                                                ${isActive ? `
+                                                    <button class="btn-warning btn-sm" onclick="deactivateParent('${parent.id}', '${parent.name}')">
+                                                        Deactivate
+                                                    </button>
+                                                ` : `
+                                                    <button class="btn-primary btn-sm" onclick="activateParent('${parent.id}', '${parent.name}')">
+                                                        Activate
+                                                    </button>
+                                                `}
+                                                <button class="btn-danger btn-sm" onclick="deleteParent('${parent.id}', '${parent.name}')">
+                                                    Delete
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                ` : '<p style="color: #666;">No parents found in the system.</p>'}
+            </div>
+        `;
+    } catch (error) {
+        hideLoading();
+        console.error('Error loading parents:', error);
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>👨‍👩‍👧 Manage Parents</h3>
+                <p style="color: #e74c3c;">Error loading parent data. Please try again.</p>
+            </div>
+        `;
+    }
+}
+
+window.deactivateParent = async function(parentId, parentName) {
+    if (!confirm(`Are you sure you want to deactivate parent "${parentName}" (${parentId})?\n\nThey will not be able to login, but their data will be preserved.`)) {
+        return;
+    }
+
+    try {
+        showLoading();
+        const client = window.supabaseClient.getClient();
+
+        // Update parent status to inactive
+        const { error: parentError } = await client
+            .from('parents')
+            .update({ status: 'inactive' })
+            .eq('id', parentId);
+
+        if (parentError) throw parentError;
+
+        // Also disable the user account
+        const { error: userError } = await client
+            .from('users')
+            .update({ status: 'inactive' })
+            .eq('username', parentId);
+
+        if (userError) throw userError;
+
+        hideLoading();
+        showModal('Success', `Parent "${parentName}" has been deactivated.`, 'success');
+        renderManageParents(); // Refresh the list
+    } catch (error) {
+        hideLoading();
+        console.error('Error deactivating parent:', error);
+        showModal('Error', `Failed to deactivate parent: ${error.message}`, 'error');
+    }
+};
+
+window.activateParent = async function(parentId, parentName) {
+    try {
+        showLoading();
+        const client = window.supabaseClient.getClient();
+
+        // Update parent status to active
+        const { error: parentError } = await client
+            .from('parents')
+            .update({ status: 'active' })
+            .eq('id', parentId);
+
+        if (parentError) throw parentError;
+
+        // Also enable the user account
+        const { error: userError } = await client
+            .from('users')
+            .update({ status: 'active' })
+            .eq('username', parentId);
+
+        if (userError) throw userError;
+
+        hideLoading();
+        showModal('Success', `Parent "${parentName}" has been activated.`, 'success');
+        renderManageParents(); // Refresh the list
+    } catch (error) {
+        hideLoading();
+        console.error('Error activating parent:', error);
+        showModal('Error', `Failed to activate parent: ${error.message}`, 'error');
+    }
+};
+
+window.deleteParent = async function(parentId, parentName) {
+    if (!confirm(`⚠️ WARNING: Are you sure you want to PERMANENTLY DELETE parent "${parentName}" (${parentId})?\n\nThis action CANNOT be undone!\n\nAll parent data will be permanently removed from the system.`)) {
+        return;
+    }
+
+    if (!confirm(`This is your FINAL warning!\n\nDeleting parent "${parentName}" (${parentId}) will:\n✗ Remove all parent records\n✗ Delete their user account\n✗ Cannot be recovered\n\nType the parent ID to confirm, or click Cancel.`)) {
+        return;
+    }
+
+    try {
+        showLoading();
+        const client = window.supabaseClient.getClient();
+
+        // Delete user account first
+        const { error: userError } = await client
+            .from('users')
+            .delete()
+            .eq('username', parentId);
+
+        if (userError) throw userError;
+
+        // Delete parent record
+        const { error: parentError } = await client
+            .from('parents')
+            .delete()
+            .eq('id', parentId);
+
+        if (parentError) throw parentError;
+
+        hideLoading();
+        showModal('Success', `Parent "${parentName}" has been permanently deleted.`, 'success');
+        renderManageParents(); // Refresh the list
+    } catch (error) {
+        hideLoading();
+        console.error('Error deleting parent:', error);
+        showModal('Error', `Failed to delete parent: ${error.message}`, 'error');
+    }
+};
+
 async function renderHolidays() {
     const contentArea = document.getElementById('contentArea');
     const client = window.supabaseClient.getClient();
@@ -6102,12 +6326,13 @@ async function renderRegister() {
         <div class="card">
             <h3>📝 Register New User</h3>
             <p style="color: #666; margin-bottom: 20px;">
-                Register students, teachers, or coordinators. Parent accounts are created automatically when registering students.
+                Register students, parents, teachers, or coordinators. Parent accounts can be created automatically when registering students, or registered separately.
             </p>
 
             <div style="margin-bottom: 20px;">
                 <label>Select User Type:</label><br>
                 <button class="btn-filter active" onclick="showRegisterForm('student')" id="reg-student">Student</button>
+                <button class="btn-filter" onclick="showRegisterForm('parent')" id="reg-parent">Parent</button>
                 <button class="btn-filter" onclick="showRegisterForm('teacher')" id="reg-teacher">Teacher</button>
                 <button class="btn-filter" onclick="showRegisterForm('coordinator')" id="reg-coordinator">Coordinator</button>
             </div>
