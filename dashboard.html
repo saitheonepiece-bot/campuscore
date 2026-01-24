@@ -181,11 +181,15 @@ const menuItems = {
         { id: 'myduties', icon: '📋', label: 'My Duties' },
         { id: 'markattendance', icon: '✅', label: 'Mark Attendance' },
         { id: 'homework', icon: '📝', label: 'Homework' },
+        { id: 'homeworkmanagement', icon: '📚', label: 'Homework Management' },
+        { id: 'teacherschedule', icon: '👨‍🏫', label: 'Teacher Schedule' },
         { id: 'examresults', icon: '📊', label: 'Exam Results' },
         { id: 'uploadmarks', icon: '📈', label: 'Upload Marks' },
+        { id: 'manualmarks', icon: '📊', label: 'Manual Marks Upload' },
+        { id: 'marksapproval', icon: '✅', label: 'Marks Approval' },
         { id: 'myclasses', icon: '👥', label: 'My Classes' },
         { id: 'teacherissues', icon: '⚠️', label: 'Issues' },
-        { id: 'teacheranalytics', icon: '📊', label: 'My Analytics' }, // PROMPT 3 - NEW CODE
+        { id: 'teacheranalytics', icon: '📊', label: 'My Analytics' },
         { id: 'timetable', icon: '🗓️', label: 'Timetable' },
         { id: 'profile', icon: '👤', label: 'Profile' },
         { id: 'changepassword', icon: '🔐', label: 'Change Password' }
@@ -209,18 +213,12 @@ const menuItems = {
     viceprincipal: [
       { id: 'home', icon: '🏠', label: 'Dashboard' },
     { id: 'classmanagement', icon: '🏫', label: 'Class Management' },
-    { id: 'homeworkmanagement', icon: '📚', label: 'Homework Management' },
     { id: 'timetablemanagement', icon: '🗓️', label: 'Timetable Management' },
-    { id: 'teacherschedule', icon: '👨‍🏫', label: 'Teacher Schedule' },
     { id: 'examschedule', icon: '📝', label: 'Exam Schedule' },
-    { id: 'manualmarks', icon: '📊', label: 'Manual Marks Upload' },
     { id: 'bulkupload', icon: '📤', label: 'New Students Upload' },
-    { id: 'marksapproval', icon: '✅', label: 'Marks Approval' },
     { id: 'appointteacher', icon: '👨‍🏫', label: 'Appoint Teacher' },
     { id: 'assignduties', icon: '📋', label: 'Assign Duties' },
     { id: 'vpissues', icon: '⚠️', label: 'Issues' },
-    { id: 'issuesdashboard', icon: '📋', label: 'Issues Dashboard' },
-    { id: 'escalatedissues', icon: '🚨', label: 'Escalated Issues' },
     { id: 'attendanceanalytics', icon: '📈', label: 'Attendance Analytics' },
     { id: 'performanceanalytics', icon: '🎯', label: 'Performance Analytics' },
     { id: 'studentanalysis', icon: '👥', label: 'Student Analysis' },
@@ -236,18 +234,12 @@ const menuItems = {
     superviceprincipal: [
         { id: 'home', icon: '🏠', label: 'Dashboard' },
         { id: 'classmanagement', icon: '🏫', label: 'Class Management' },
-        { id: 'homeworkmanagement', icon: '📚', label: 'Homework Management' },
         { id: 'timetablemanagement', icon: '🗓️', label: 'Timetable Management' },
-        { id: 'teacherschedule', icon: '👨‍🏫', label: 'Teacher Schedule' },
         { id: 'examschedule', icon: '📝', label: 'Exam Schedule' },
-        { id: 'manualmarks', icon: '📊', label: 'Manual Marks Upload' },
         { id: 'bulkupload', icon: '📤', label: 'New Students Upload' },
-        { id: 'marksapproval', icon: '✅', label: 'Marks Approval' },
         { id: 'appointteacher', icon: '👨‍🏫', label: 'Appoint Teacher' },
         { id: 'assignduties', icon: '📋', label: 'Assign Duties' },
         { id: 'svpissues', icon: '⚠️', label: 'Issues' },
-        { id: 'issuesdashboard', icon: '📋', label: 'Issues Dashboard' },
-        { id: 'escalatedissues', icon: '🚨', label: 'Escalated Issues' },
         { id: 'principalanalytics', icon: '📊', label: 'Analytics Dashboard' },
         { id: 'attendanceanalytics', icon: '📈', label: 'Attendance Analytics' },
         { id: 'performanceanalytics', icon: '🎯', label: 'Performance Analytics' },
@@ -3494,7 +3486,8 @@ async function renderVPIssues() {
         .select('*')
         .order('created_at', { ascending: false });
 
-    const pendingIssues = allIssues?.filter(i => i.status !== 'resolved') || [];
+    const pendingIssues = allIssues?.filter(i => i.status !== 'resolved' && i.status !== 'escalated') || [];
+    const escalatedIssues = allIssues?.filter(i => i.status === 'escalated') || [];
     const resolvedIssues = allIssues?.filter(i => i.status === 'resolved') || [];
 
     contentArea.innerHTML = `
@@ -3510,6 +3503,9 @@ async function renderVPIssues() {
             <div style="margin-bottom: 25px; display: flex; gap: 10px; flex-wrap: wrap;">
                 <button class="btn-tab active" onclick="showIssueTab('pending')" id="tab-pending" style="box-shadow: 0 3px 10px rgba(92, 168, 112, 0.2);">
                     📋 Pending <span style="background: white; color: #5ca870; padding: 2px 8px; border-radius: 12px; margin-left: 6px; font-weight: bold;">${pendingIssues.length}</span>
+                </button>
+                <button class="btn-tab" onclick="showIssueTab('escalated')" id="tab-escalated" style="box-shadow: 0 3px 10px rgba(0,0,0,0.1);">
+                    🚨 Escalated <span style="background: #e0e0e0; color: #666; padding: 2px 8px; border-radius: 12px; margin-left: 6px; font-weight: bold;">${escalatedIssues.length}</span>
                 </button>
                 <button class="btn-tab" onclick="showIssueTab('history')" id="tab-history" style="box-shadow: 0 3px 10px rgba(0,0,0,0.1);">
                     ✅ Resolved <span style="background: #e0e0e0; color: #666; padding: 2px 8px; border-radius: 12px; margin-left: 6px; font-weight: bold;">${resolvedIssues.length}</span>
@@ -3552,6 +3548,43 @@ async function renderVPIssues() {
                         </div>
                     </div>
                 `).join('') : '<div style="padding: 60px 20px; text-align: center; background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border-radius: 15px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);"><div style="font-size: 4em; margin-bottom: 15px;">✅</div><h3 style="color: #5ca870; margin-bottom: 10px;">All Clear!</h3><p style="color: #666; font-size: 1.1em;">No pending issues. Great job keeping everything resolved!</p></div>'}
+            </div>
+
+            <div id="escalated-tab" style="display: none;">
+                ${escalatedIssues.length > 0 ? escalatedIssues.map(issue => `
+                    <div class="issue-card-modern" style="background: linear-gradient(135deg, #fff5f5 0%, #ffe9e9 100%); border-color: #f8d7da;">
+                        <div style="position: absolute; top: 0; left: 0; width: 5px; height: 100%; background: #dc3545; border-radius: 12px 0 0 12px;"></div>
+                        <div style="display: flex; justify-content: space-between; align-items: start; gap: 20px;">
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                    <span style="font-size: 1.5em;">🚨</span>
+                                    <h4 style="margin: 0; color: #dc3545; font-size: 1.2em;">${issue.title}</h4>
+                                </div>
+                                ${issue.student_name ? `<p style="color: #5CA870; font-weight: 600; margin: 8px 0; display: flex; align-items: center; gap: 6px;">
+                                    <span style="background: #f8d7da; padding: 4px 10px; border-radius: 8px; font-size: 0.95em;">👨‍🎓 ${issue.student_name} ${issue.class ? `(${issue.class})` : ''}</span>
+                                </p>` : ''}
+                                <p style="color: #666; margin: 10px 0; line-height: 1.6;">${issue.description || 'No description'}</p>
+                                <div style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                                    <span class="badge-modern badge-modern-${issue.priority}">
+                                        ${issue.priority === 'critical' ? '🔴' : issue.priority === 'high' ? '🟡' : issue.priority === 'normal' ? '🔵' : '🟢'} ${issue.priority.toUpperCase()}
+                                    </span>
+                                    <span class="badge-modern badge-modern-status-escalated">🚨 ESCALATED</span>
+                                    ${issue.reported_by ? `<span style="color: #666; font-size: 0.9em; background: rgba(255,255,255,0.8); padding: 4px 10px; border-radius: 6px;">👤 ${issue.reported_by}</span>` : ''}
+                                    <span style="color: #999; font-size: 0.85em; background: rgba(255,255,255,0.8); padding: 4px 10px; border-radius: 6px;">📅 ${new Date(issue.created_at).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                            <div style="min-width: 160px;">
+                                <label style="display: block; font-size: 0.85em; color: #666; margin-bottom: 5px; font-weight: 600;">Update Status</label>
+                                <select onchange="updateIssueStatus(${issue.id}, this.value)" style="padding: 10px 12px; border-radius: 8px; border: 2px solid #e0e0e0; width: 100%; background: white; cursor: pointer; font-size: 0.95em; transition: all 0.3s;">
+                                    <option value="pending" ${issue.status === 'pending' ? 'selected' : ''}>⏳ Pending</option>
+                                    <option value="in_progress" ${issue.status === 'in_progress' ? 'selected' : ''}>⚙️ In Progress</option>
+                                    <option value="resolved" ${issue.status === 'resolved' ? 'selected' : ''}>✅ Resolved</option>
+                                    <option value="escalated" ${issue.status === 'escalated' ? 'selected' : ''}>🚨 Escalated</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                `).join('') : '<div style="padding: 60px 20px; text-align: center; background: linear-gradient(135deg, #f8f9fa 0%, #ffe9e9 100%); border-radius: 15px;"><div style="font-size: 4em; margin-bottom: 15px;">🚨</div><h3 style="color: #dc3545; margin-bottom: 10px;">No Escalated Issues</h3><p style="color: #666; font-size: 1.1em;">All critical issues are being handled at the current level.</p></div>'}
             </div>
 
             <div id="history-tab" style="display: none;">
@@ -5807,6 +5840,7 @@ window.showIssueTab = function(tab) {
 
     // Toggle content
     document.getElementById('pending-tab').style.display = tab === 'pending' ? 'block' : 'none';
+    document.getElementById('escalated-tab').style.display = tab === 'escalated' ? 'block' : 'none';
     document.getElementById('history-tab').style.display = tab === 'history' ? 'block' : 'none';
 };
 
@@ -6934,9 +6968,7 @@ window.showRegisterForm = function(userType) {
                         id: teacherId,
                         name: teacherName,
                         subjects: subjects,
-                        classes: classes || null,
-                        phone: phone || null,
-                        email: email || null
+                        classes: classes || null
                     }])
                     .select();
 
@@ -6968,6 +7000,132 @@ window.showRegisterForm = function(userType) {
 
                 hideLoading();
                 showModal('Success', `Teacher registered successfully!\n\nTeacher: ${teacherName}\nID: ${teacherId}\nSubjects: ${subjects}\nUsername: ${teacherId}\nPassword: ${password}\n\nYou can now login with these credentials.`, 'success');
+                document.getElementById('registerForm').reset();
+            } catch (error) {
+                console.error('Registration failed:', error);
+                hideLoading();
+                showModal('Error', `Registration failed: ${error.message}`, 'error');
+            }
+        });
+    } else if (userType === 'coordinator') {
+        container.innerHTML = `
+            <form id="registerForm" style="max-width: 600px;">
+                <h4>Register Coordinator</h4>
+                <div class="form-group">
+                    <label>Coordinator ID</label>
+                    <input type="text" id="coordinatorId" placeholder="e.g., C001" required>
+                </div>
+                <div class="form-group">
+                    <label>Coordinator Name</label>
+                    <input type="text" id="coordinatorName" required>
+                </div>
+                <div class="form-group">
+                    <label>Department</label>
+                    <input type="text" id="department" placeholder="e.g., Science, Arts">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="password" required>
+                </div>
+                <button type="submit" class="btn-primary">Register Coordinator</button>
+            </form>
+        `;
+
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const coordinatorId = document.getElementById('coordinatorId').value.trim();
+            const coordinatorName = document.getElementById('coordinatorName').value.trim();
+            const department = document.getElementById('department').value.trim();
+            const password = document.getElementById('password').value;
+
+            // Validation
+            if (!coordinatorId || !coordinatorName || !password) {
+                showModal('Error', 'Please fill in all required fields.', 'error');
+                return;
+            }
+
+            try {
+                showLoading();
+                const client = window.supabaseClient.getClient();
+
+                console.log('Starting coordinator registration for:', coordinatorId);
+
+                // Check if coordinator ID already exists
+                const { data: existingCoordinator, error: coordinatorCheckError } = await client
+                    .from('coordinators')
+                    .select('id, name')
+                    .eq('id', coordinatorId)
+                    .maybeSingle();
+
+                if (coordinatorCheckError) {
+                    console.error('Error checking coordinator:', coordinatorCheckError);
+                    throw new Error(`Error checking coordinator: ${coordinatorCheckError.message}`);
+                }
+
+                if (existingCoordinator) {
+                    hideLoading();
+                    showModal('Error', `Coordinator ID ${coordinatorId} already exists (${existingCoordinator.name}). Please use a different Coordinator ID.`, 'error');
+                    return;
+                }
+
+                // Check if username already exists
+                const { data: existingUser, error: userCheckError } = await client
+                    .from('users')
+                    .select('username')
+                    .eq('username', coordinatorId)
+                    .maybeSingle();
+
+                if (userCheckError) {
+                    console.error('Error checking username:', userCheckError);
+                    throw new Error(`Error checking username: ${userCheckError.message}`);
+                }
+
+                if (existingUser) {
+                    hideLoading();
+                    showModal('Error', `Username ${coordinatorId} already exists. Please use a different Coordinator ID.`, 'error');
+                    return;
+                }
+
+                // Insert coordinator
+                console.log('Inserting coordinator record...');
+                const { data: coordinatorData, error: coordinatorError } = await client
+                    .from('coordinators')
+                    .insert([{
+                        id: coordinatorId,
+                        name: coordinatorName,
+                        department: department || null
+                    }])
+                    .select();
+
+                if (coordinatorError) {
+                    console.error('Error inserting coordinator:', coordinatorError);
+                    throw new Error(`Failed to create coordinator record: ${coordinatorError.message}`);
+                }
+                console.log('Coordinator record created:', coordinatorData);
+
+                // Create user account
+                console.log('Creating user account...');
+                const { data: userData, error: userError } = await client
+                    .from('users')
+                    .insert([{
+                        username: coordinatorId,
+                        password: password,
+                        name: coordinatorName,
+                        role: 'coordinator'
+                    }])
+                    .select();
+
+                if (userError) {
+                    console.error('Error creating user account:', userError);
+                    // Try to rollback coordinator creation
+                    await client.from('coordinators').delete().eq('id', coordinatorId);
+                    throw new Error(`Failed to create user account: ${userError.message}`);
+                }
+                console.log('User account created:', userData);
+
+                hideLoading();
+                showModal('Success', `Coordinator registered successfully!\n\nCoordinator: ${coordinatorName}\nID: ${coordinatorId}\n${department ? `Department: ${department}\n` : ''}Username: ${coordinatorId}\nPassword: ${password}\n\nYou can now login with these credentials.`, 'success');
                 document.getElementById('registerForm').reset();
             } catch (error) {
                 console.error('Registration failed:', error);
