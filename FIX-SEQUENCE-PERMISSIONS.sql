@@ -1,40 +1,47 @@
 -- ============================================
--- FIX: SEQUENCE PERMISSION ERRORS
+-- FIX: ALL SEQUENCE PERMISSION ERRORS
 -- ============================================
 -- Fixes "permission denied for sequence" errors
+-- This fixes homework, teacher_duties, and ALL other sequences
 -- Run this in Supabase SQL Editor
 -- ============================================
 
--- Grant usage on all sequences to authenticated and anon roles
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+-- STEP 1: Grant usage on ALL sequences to all roles
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role, postgres;
 
--- Specifically fix teacher_duties sequence
-GRANT USAGE, SELECT ON SEQUENCE teacher_duties_id_seq TO anon, authenticated, service_role;
+-- STEP 2: Grant ALL privileges on ALL tables
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role, postgres;
 
--- Fix other common sequences
-GRANT USAGE, SELECT ON SEQUENCE students_id_seq TO anon, authenticated, service_role;
-GRANT USAGE, SELECT ON SEQUENCE classes_id_seq TO anon, authenticated, service_role;
-GRANT USAGE, SELECT ON SEQUENCE attendance_id_seq TO anon, authenticated, service_role;
-GRANT USAGE, SELECT ON SEQUENCE homework_id_seq TO anon, authenticated, service_role;
-GRANT USAGE, SELECT ON SEQUENCE parents_id_seq TO anon, authenticated, service_role;
-GRANT USAGE, SELECT ON SEQUENCE teachers_id_seq TO anon, authenticated, service_role;
-GRANT USAGE, SELECT ON SEQUENCE users_id_seq TO anon, authenticated, service_role;
-GRANT USAGE, SELECT ON SEQUENCE exam_schedules_id_seq TO anon, authenticated, service_role;
-GRANT USAGE, SELECT ON SEQUENCE exam_results_id_seq TO anon, authenticated, service_role;
-GRANT USAGE, SELECT ON SEQUENCE report_cards_id_seq TO anon, authenticated, service_role;
-GRANT USAGE, SELECT ON SEQUENCE issues_id_seq TO anon, authenticated, service_role;
-GRANT USAGE, SELECT ON SEQUENCE holidays_id_seq TO anon, authenticated, service_role;
-GRANT USAGE, SELECT ON SEQUENCE teacher_appointments_id_seq TO anon, authenticated, service_role;
-GRANT USAGE, SELECT ON SEQUENCE marks_submissions_id_seq TO anon, authenticated, service_role;
-GRANT USAGE, SELECT ON SEQUENCE student_documents_id_seq TO anon, authenticated, service_role;
-GRANT USAGE, SELECT ON SEQUENCE cca_calendars_id_seq TO anon, authenticated, service_role;
-GRANT USAGE, SELECT ON SEQUENCE timetables_id_seq TO anon, authenticated, service_role;
-GRANT USAGE, SELECT ON SEQUENCE teacher_timetables_id_seq TO anon, authenticated, service_role;
+-- STEP 3: Specifically fix each sequence individually
+-- Homework sequence (FIXES YOUR ERROR)
+GRANT ALL ON SEQUENCE homework_id_seq TO anon, authenticated, service_role, postgres;
+
+-- Teacher duties sequence
+GRANT ALL ON SEQUENCE teacher_duties_id_seq TO anon, authenticated, service_role, postgres;
+
+-- Fix ALL other sequences
+GRANT ALL ON SEQUENCE students_id_seq TO anon, authenticated, service_role, postgres;
+GRANT ALL ON SEQUENCE classes_id_seq TO anon, authenticated, service_role, postgres;
+GRANT ALL ON SEQUENCE attendance_id_seq TO anon, authenticated, service_role, postgres;
+GRANT ALL ON SEQUENCE parents_id_seq TO anon, authenticated, service_role, postgres;
+GRANT ALL ON SEQUENCE teachers_id_seq TO anon, authenticated, service_role, postgres;
+GRANT ALL ON SEQUENCE users_id_seq TO anon, authenticated, service_role, postgres;
+GRANT ALL ON SEQUENCE exam_schedules_id_seq TO anon, authenticated, service_role, postgres;
+GRANT ALL ON SEQUENCE exam_results_id_seq TO anon, authenticated, service_role, postgres;
+GRANT ALL ON SEQUENCE report_cards_id_seq TO anon, authenticated, service_role, postgres;
+GRANT ALL ON SEQUENCE issues_id_seq TO anon, authenticated, service_role, postgres;
+GRANT ALL ON SEQUENCE holidays_id_seq TO anon, authenticated, service_role, postgres;
+GRANT ALL ON SEQUENCE teacher_appointments_id_seq TO anon, authenticated, service_role, postgres;
+GRANT ALL ON SEQUENCE marks_submissions_id_seq TO anon, authenticated, service_role, postgres;
+GRANT ALL ON SEQUENCE student_documents_id_seq TO anon, authenticated, service_role, postgres;
+GRANT ALL ON SEQUENCE cca_calendars_id_seq TO anon, authenticated, service_role, postgres;
+GRANT ALL ON SEQUENCE timetables_id_seq TO anon, authenticated, service_role, postgres;
+GRANT ALL ON SEQUENCE teacher_timetables_id_seq TO anon, authenticated, service_role, postgres;
 
 -- Grant permissions for new feature sequences (if they exist)
-GRANT USAGE, SELECT ON SEQUENCE pre_classes_id_seq TO anon, authenticated, service_role;
-GRANT USAGE, SELECT ON SEQUENCE class_members_id_seq TO anon, authenticated, service_role;
-GRANT USAGE, SELECT ON SEQUENCE homework_submissions_id_seq TO anon, authenticated, service_role;
+GRANT ALL ON SEQUENCE pre_classes_id_seq TO anon, authenticated, service_role, postgres;
+GRANT ALL ON SEQUENCE class_members_id_seq TO anon, authenticated, service_role, postgres;
+GRANT ALL ON SEQUENCE homework_submissions_id_seq TO anon, authenticated, service_role, postgres;
 
 -- Alternative: Set default privileges for future sequences
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO anon, authenticated, service_role;
