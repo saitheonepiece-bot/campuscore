@@ -182,6 +182,7 @@ const menuItems = {
     ],
     coordinator: [
         { id: 'home', icon: '🏠', label: 'Dashboard' },
+        { id: 'coordissues', icon: '⚠️', label: 'Issues' },
         { id: 'coordinatoranalytics', icon: '📊', label: 'Analytics Dashboard' },
         { id: 'attendanceanalytics', icon: '📈', label: 'Attendance Analytics' },
         { id: 'performanceanalytics', icon: '🎯', label: 'Performance Analytics' },
@@ -224,6 +225,48 @@ const menuItems = {
         { id: 'assignduties', icon: '📋', label: 'Assign Duties' },
         { id: 'svpissues', icon: '⚠️', label: 'Issues' },
         { id: 'principalanalytics', icon: '📊', label: 'Analytics Dashboard' },
+        { id: 'attendanceanalytics', icon: '📈', label: 'Attendance Analytics' },
+        { id: 'performanceanalytics', icon: '🎯', label: 'Performance Analytics' },
+        { id: 'studentanalysis', icon: '👥', label: 'Student Analysis' },
+        { id: 'removestudent', icon: '🚫', label: 'Remove Student' },
+        { id: 'deletestudent', icon: '❌', label: 'Delete Student' },
+        { id: 'manageparents', icon: '👨‍👩‍👧', label: 'Manage Parents' },
+        { id: 'holidays', icon: '🎉', label: 'Holidays' },
+        { id: 'register', icon: '📝', label: 'Register' },
+        { id: 'timetable', icon: '🗓️', label: 'Timetable' },
+        { id: 'profile', icon: '👤', label: 'Profile' },
+        { id: 'changepassword', icon: '🔐', label: 'Change Password' }
+    ],
+    vpjunior: [
+        { id: 'home', icon: '🏠', label: 'Dashboard' },
+        { id: 'classmanagement', icon: '🏫', label: 'Class Management' },
+        { id: 'timetablemanagement', icon: '🗓️', label: 'Timetable Management' },
+        { id: 'examschedule', icon: '📝', label: 'Exam Schedule' },
+        { id: 'bulkupload', icon: '📤', label: 'New Students Upload' },
+        { id: 'appointteacher', icon: '👨‍🏫', label: 'Appoint Teacher' },
+        { id: 'assignduties', icon: '📋', label: 'Assign Duties' },
+        { id: 'vpissues', icon: '⚠️', label: 'Issues' },
+        { id: 'attendanceanalytics', icon: '📈', label: 'Attendance Analytics' },
+        { id: 'performanceanalytics', icon: '🎯', label: 'Performance Analytics' },
+        { id: 'studentanalysis', icon: '👥', label: 'Student Analysis' },
+        { id: 'removestudent', icon: '🚫', label: 'Remove Student' },
+        { id: 'deletestudent', icon: '❌', label: 'Delete Student' },
+        { id: 'manageparents', icon: '👨‍👩‍👧', label: 'Manage Parents' },
+        { id: 'holidays', icon: '🎉', label: 'Holidays' },
+        { id: 'register', icon: '📝', label: 'Register' },
+        { id: 'timetable', icon: '🗓️', label: 'Timetable' },
+        { id: 'profile', icon: '👤', label: 'Profile' },
+        { id: 'changepassword', icon: '🔐', label: 'Change Password' }
+    ],
+    vpsenior: [
+        { id: 'home', icon: '🏠', label: 'Dashboard' },
+        { id: 'classmanagement', icon: '🏫', label: 'Class Management' },
+        { id: 'timetablemanagement', icon: '🗓️', label: 'Timetable Management' },
+        { id: 'examschedule', icon: '📝', label: 'Exam Schedule' },
+        { id: 'bulkupload', icon: '📤', label: 'New Students Upload' },
+        { id: 'appointteacher', icon: '👨‍🏫', label: 'Appoint Teacher' },
+        { id: 'assignduties', icon: '📋', label: 'Assign Duties' },
+        { id: 'vpissues', icon: '⚠️', label: 'Issues' },
         { id: 'attendanceanalytics', icon: '📈', label: 'Attendance Analytics' },
         { id: 'performanceanalytics', icon: '🎯', label: 'Performance Analytics' },
         { id: 'studentanalysis', icon: '👥', label: 'Student Analysis' },
@@ -334,6 +377,8 @@ function formatRole(role) {
         coordinator: 'Coordinator',
         viceprincipal: 'Vice Principal',
         superviceprincipal: 'Super Vice Principal',
+        vpjunior: 'VP Junior (Grades 6-8)',
+        vpsenior: 'VP Senior (Grades 9-10)',
         hassan: 'Hassan Sir (Admin)',
         classteacher: 'Class Teacher'
     };
@@ -2496,6 +2541,11 @@ async function renderTeacherIssues() {
 
             const studentId = document.getElementById('issueStudent').value;
             const studentName = document.getElementById('issueStudent').selectedOptions[0].text;
+            const classValue = document.getElementById('issueClass').value;
+
+            // Extract grade level from class (e.g., "6A" -> "6", "10B" -> "10")
+            const gradeMatch = classValue.match(/^(\d+)/);
+            const gradeLevel = gradeMatch ? gradeMatch[1] : null;
 
             const issueData = {
                 title: document.getElementById('issueTitle').value,
@@ -2503,9 +2553,11 @@ async function renderTeacherIssues() {
                 priority: document.getElementById('issuePriority').value,
                 student_id: studentId ? parseInt(studentId) : null,
                 student_name: studentName && studentName !== '-- Select Student --' ? studentName : null,
-                class: document.getElementById('issueClass').value,
+                class: classValue,
+                grade_level: gradeLevel,
                 reported_by: currentUser.username,
-                status: 'pending'
+                status: 'pending',
+                escalated_to: 'coordinator'
             };
 
             try {
@@ -2564,9 +2616,216 @@ window.loadStudentsForIssue = async function() {
 
 // Coordinator tab functions
 async function renderCoordIssues() {
-    // Use the same issues management as VP
-    await renderVPIssues();
+    const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+    const currentUser = window.auth.getCurrentUser();
+
+    // Get issues escalated to coordinator
+    const { data: allIssues } = await client
+        .from('issues')
+        .select('*')
+        .eq('escalated_to', 'coordinator')
+        .order('created_at', { ascending: false });
+
+    const pendingIssues = allIssues?.filter(i => i.status === 'pending') || [];
+    const resolvedIssues = allIssues?.filter(i => i.status === 'resolved') || [];
+
+    contentArea.innerHTML = `
+        <div class="card" style="background: linear-gradient(135deg, #ffffff 0%, #f8fdf9 100%);">
+            <div style="background: linear-gradient(135deg, #5ca870 0%, #7ec490 100%); padding: 25px; border-radius: 15px; margin-bottom: 25px; box-shadow: 0 5px 20px rgba(92, 168, 112, 0.3);">
+                <h3 style="color: white; margin: 0; font-size: 1.8em; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.5em;">⚠️</span>
+                    Coordinator Issues Dashboard
+                </h3>
+                <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 1.05em;">Review and resolve or escalate issues</p>
+            </div>
+
+            <div style="margin-bottom: 25px; display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn-tab active" onclick="showCoordIssueTab('pending')" id="coordtab-pending" style="box-shadow: 0 3px 10px rgba(92, 168, 112, 0.2);">
+                    📋 Pending <span style="background: white; color: #5ca870; padding: 2px 8px; border-radius: 12px; margin-left: 6px; font-weight: bold;">${pendingIssues.length}</span>
+                </button>
+                <button class="btn-tab" onclick="showCoordIssueTab('resolved')" id="coordtab-resolved" style="box-shadow: 0 3px 10px rgba(0,0,0,0.1);">
+                    ✅ Resolved <span style="background: #e0e0e0; color: #666; padding: 2px 8px; border-radius: 12px; margin-left: 6px; font-weight: bold;">${resolvedIssues.length}</span>
+                </button>
+            </div>
+
+            <div id="coordpending-tab">
+                ${pendingIssues.length > 0 ? pendingIssues.map(issue => `
+                    <div class="issue-card-modern">
+                        <div style="position: absolute; top: 0; left: 0; width: 5px; height: 100%; background: ${issue.priority === 'critical' ? '#dc3545' : issue.priority === 'high' ? '#ffc107' : issue.priority === 'normal' ? '#17a2b8' : '#28a745'}; border-radius: 12px 0 0 12px;"></div>
+                        <div style="display: flex; justify-content: space-between; align-items: start; gap: 20px;">
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                    <h4 style="margin: 0; color: #2c3e50; font-size: 1.2em;">${issue.title}</h4>
+                                </div>
+                                ${issue.student_name ? `<p style="color: #5CA870; font-weight: 600; margin: 8px 0; display: flex; align-items: center; gap: 6px;">
+                                    <span style="background: #e8f5e9; padding: 6px 12px; border-radius: 8px; font-size: 0.95em;">👨‍🎓 Student: ${issue.student_name} ${issue.class ? `(${issue.class})` : ''}</span>
+                                </p>` : ''}
+                                ${issue.reported_by ? `<p style="color: #2c3e50; font-weight: 600; margin: 8px 0; display: flex; align-items: center; gap: 6px;">
+                                    <span style="background: #e3f2fd; padding: 6px 12px; border-radius: 8px; font-size: 0.95em;">👨‍🏫 Reported by: ${issue.reported_by}</span>
+                                </p>` : ''}
+                                <p style="color: #666; margin: 10px 0; line-height: 1.6;">${issue.description || 'No description'}</p>
+                                <div style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                                    <span class="badge-modern badge-modern-${issue.priority}">
+                                        ${issue.priority === 'critical' ? '🔴' : issue.priority === 'high' ? '🟡' : issue.priority === 'normal' ? '🔵' : '🟢'} ${issue.priority.toUpperCase()}
+                                    </span>
+                                    <span style="color: #999; font-size: 0.85em; background: #f8f9fa; padding: 4px 10px; border-radius: 6px;">📅 ${new Date(issue.created_at).toLocaleDateString()}</span>
+                                    ${issue.grade_level ? `<span style="color: #5ca870; font-size: 0.85em; background: #e8f5e9; padding: 4px 10px; border-radius: 6px; font-weight: 600;">Grade ${issue.grade_level}</span>` : ''}
+                                </div>
+                            </div>
+                            <div style="min-width: 180px; display: flex; flex-direction: column; gap: 10px;">
+                                <button onclick="resolveIssue(${issue.id})" class="btn-primary" style="width: 100%; padding: 10px; font-size: 0.9em;">
+                                    ✅ Resolve
+                                </button>
+                                <button onclick="escalateToVP(${issue.id}, '${issue.grade_level}')" class="btn-secondary" style="width: 100%; padding: 10px; font-size: 0.9em; background: #ffc107; border-color: #ffc107;">
+                                    🚨 Escalate to VP
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('') : '<div style="padding: 60px 20px; text-align: center; background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border-radius: 15px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);"><div style="font-size: 4em; margin-bottom: 15px;">✅</div><h3 style="color: #5ca870; margin-bottom: 10px;">All Clear!</h3><p style="color: #666; font-size: 1.1em;">No pending issues. Great job!</p></div>'}
+            </div>
+
+            <div id="coordresolved-tab" style="display: none;">
+                ${resolvedIssues.length > 0 ? resolvedIssues.map(issue => `
+                    <div class="issue-card-modern" style="background: linear-gradient(135deg, #f0fff4 0%, #e8f5e9 100%); border-color: #c3e6cb;">
+                        <div style="position: absolute; top: 0; left: 0; width: 5px; height: 100%; background: #28a745; border-radius: 12px 0 0 12px;"></div>
+                        <div style="display: flex; justify-content: space-between; align-items: start; gap: 20px;">
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                    <span style="font-size: 1.5em;">✅</span>
+                                    <h4 style="margin: 0; color: #28a745; font-size: 1.2em;">${issue.title}</h4>
+                                </div>
+                                ${issue.student_name ? `<p style="color: #5CA870; font-weight: 600; margin: 8px 0; display: flex; align-items: center; gap: 6px;">
+                                    <span style="background: white; padding: 6px 12px; border-radius: 8px; font-size: 0.95em;">👨‍🎓 ${issue.student_name} ${issue.class ? `(${issue.class})` : ''}</span>
+                                </p>` : ''}
+                                ${issue.reported_by ? `<p style="color: #2c3e50; font-weight: 600; margin: 8px 0; display: flex; align-items: center; gap: 6px;">
+                                    <span style="background: white; padding: 6px 12px; border-radius: 8px; font-size: 0.95em;">👨‍🏫 ${issue.reported_by}</span>
+                                </p>` : ''}
+                                <p style="color: #666; margin: 10px 0; line-height: 1.6;">${issue.description || 'No description'}</p>
+                                <div style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                                    <span class="badge-modern badge-modern-status-resolved">✅ RESOLVED</span>
+                                    ${issue.resolved_by ? `<span style="color: #666; font-size: 0.9em; background: white; padding: 4px 10px; border-radius: 6px;">Resolved by: ${issue.resolved_by}</span>` : ''}
+                                    <span style="color: #999; font-size: 0.85em; background: white; padding: 4px 10px; border-radius: 6px;">📅 ${new Date(issue.created_at).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('') : '<div style="padding: 40px; text-align: center; color: #999;"><p>No resolved issues yet</p></div>'}
+            </div>
+        </div>
+    `;
 }
+
+window.showCoordIssueTab = function(tab) {
+    // Hide all tabs
+    const tabs = ['coordpending-tab', 'coordresolved-tab'];
+    tabs.forEach(t => {
+        const elem = document.getElementById(t);
+        if (elem) elem.style.display = 'none';
+    });
+
+    // Show selected tab
+    const selectedTab = document.getElementById(`coord${tab}-tab`);
+    if (selectedTab) selectedTab.style.display = 'block';
+
+    // Update button styles
+    const buttons = ['coordtab-pending', 'coordtab-resolved'];
+    buttons.forEach(b => {
+        const btn = document.getElementById(b);
+        if (btn) {
+            btn.classList.remove('active');
+            btn.style.boxShadow = '0 3px 10px rgba(0,0,0,0.1)';
+        }
+    });
+
+    const activeBtn = document.getElementById(`coordtab-${tab}`);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+        activeBtn.style.boxShadow = '0 3px 10px rgba(92, 168, 112, 0.2)';
+    }
+};
+
+window.resolveIssue = async function(issueId) {
+    const currentUser = window.auth.getCurrentUser();
+    const client = window.supabaseClient.getClient();
+
+    showConfirm(
+        'Resolve Issue',
+        'Are you sure you want to mark this issue as resolved?',
+        async function() {
+            try {
+                showLoading();
+                const { error } = await client
+                    .from('issues')
+                    .update({
+                        status: 'resolved',
+                        resolved_by: currentUser.username,
+                        resolved_at: new Date().toISOString()
+                    })
+                    .eq('id', issueId);
+
+                if (error) throw error;
+
+                hideLoading();
+                showModal('Success', 'Issue resolved successfully!', 'success');
+                renderCoordIssues(); // Refresh
+            } catch (error) {
+                hideLoading();
+                showModal('Error', error.message || 'Failed to resolve issue', 'error');
+            }
+        },
+        null,
+        'Resolve',
+        'Cancel'
+    );
+};
+
+window.escalateToVP = async function(issueId, gradeLevel) {
+    const currentUser = window.auth.getCurrentUser();
+    const client = window.supabaseClient.getClient();
+
+    // Determine which VP based on grade level
+    const grade = parseInt(gradeLevel);
+    let vpRole;
+    if (grade >= 6 && grade <= 8) {
+        vpRole = 'vpjunior';
+    } else if (grade >= 9 && grade <= 10) {
+        vpRole = 'vpsenior';
+    } else {
+        vpRole = 'vpjunior'; // Default to junior VP
+    }
+
+    showConfirm(
+        'Escalate to VP',
+        `Are you sure you want to escalate this issue to the VP?<br><br>Grade ${gradeLevel} issues will be sent to <strong>${vpRole === 'vpjunior' ? 'VP Junior (Grades 6-8)' : 'VP Senior (Grades 9-10)'}</strong>`,
+        async function() {
+            try {
+                showLoading();
+                const { error } = await client
+                    .from('issues')
+                    .update({
+                        status: 'escalated',
+                        escalated_to: vpRole,
+                        escalated_at: new Date().toISOString()
+                    })
+                    .eq('id', issueId);
+
+                if (error) throw error;
+
+                hideLoading();
+                showModal('Success', 'Issue escalated to VP successfully!', 'success');
+                renderCoordIssues(); // Refresh
+            } catch (error) {
+                hideLoading();
+                showModal('Error', error.message || 'Failed to escalate issue', 'error');
+            }
+        },
+        null,
+        'Escalate',
+        'Cancel'
+    );
+};
 
 async function renderUploadExam() {
     const contentArea = document.getElementById('contentArea');
@@ -3489,13 +3748,34 @@ async function renderAssignDuties() {
 async function renderVPIssues() {
     const contentArea = document.getElementById('contentArea');
     const client = window.supabaseClient.getClient();
+    const currentUser = window.auth.getCurrentUser();
 
-    const { data: allIssues } = await client
+    // Determine grade filter based on VP role
+    let gradeFilter = null;
+    if (currentUser.role === 'vpjunior') {
+        gradeFilter = ['6', '7', '8'];
+    } else if (currentUser.role === 'vpsenior') {
+        gradeFilter = ['9', '10'];
+    }
+
+    // Get all issues or filter by grade for specific VP roles
+    let query = client
         .from('issues')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*');
 
-    const pendingIssues = allIssues?.filter(i => i.status !== 'resolved' && i.status !== 'escalated') || [];
+    // For vpjunior and vpsenior, filter by their assigned grades AND escalated_to their role
+    if (gradeFilter) {
+        query = query
+            .in('grade_level', gradeFilter)
+            .eq('escalated_to', currentUser.role);
+    } else if (currentUser.role === 'viceprincipal' || currentUser.role === 'superviceprincipal') {
+        // Old VP roles see all escalated issues
+        query = query.or('escalated_to.eq.vpjunior,escalated_to.eq.vpsenior,escalated_to.eq.viceprincipal');
+    }
+
+    const { data: allIssues } = await query.order('created_at', { ascending: false });
+
+    const pendingIssues = allIssues?.filter(i => i.status === 'pending') || [];
     const escalatedIssues = allIssues?.filter(i => i.status === 'escalated') || [];
     const resolvedIssues = allIssues?.filter(i => i.status === 'resolved') || [];
 
@@ -6559,6 +6839,8 @@ async function renderRegister() {
                 <button class="btn-filter" onclick="showRegisterForm('parent')" id="reg-parent">Parent</button>
                 <button class="btn-filter" onclick="showRegisterForm('teacher')" id="reg-teacher">Teacher</button>
                 <button class="btn-filter" onclick="showRegisterForm('coordinator')" id="reg-coordinator">Coordinator</button>
+                <button class="btn-filter" onclick="showRegisterForm('vpjunior')" id="reg-vpjunior">VP Junior (6-8)</button>
+                <button class="btn-filter" onclick="showRegisterForm('vpsenior')" id="reg-vpsenior">VP Senior (9-10)</button>
             </div>
 
             <div id="registerFormContainer"></div>
@@ -7171,6 +7453,120 @@ window.showRegisterForm = function(userType) {
 
                 hideLoading();
                 showModal('Success', `Coordinator registered successfully!\n\nCoordinator: ${coordinatorName}\nID: ${coordinatorId}\n${department ? `Department: ${department}\n` : ''}Username: ${coordinatorId}\nPassword: ${password}\n\nYou can now login with these credentials.`, 'success');
+                document.getElementById('registerForm').reset();
+            } catch (error) {
+                console.error('Registration failed:', error);
+                hideLoading();
+                showModal('Error', `Registration failed: ${error.message}`, 'error');
+            }
+        });
+    } else if (userType === 'vpjunior' || userType === 'vpsenior') {
+        const vpLabel = userType === 'vpjunior' ? 'VP Junior (Grades 6-8)' : 'VP Senior (Grades 9-10)';
+        const vpGrades = userType === 'vpjunior' ? '6, 7, 8' : '9, 10';
+
+        container.innerHTML = `
+            <form id="registerForm" style="max-width: 600px;">
+                <h4>Register ${vpLabel}</h4>
+                <p style="background: #e3f2fd; padding: 12px; border-radius: 5px; font-size: 14px; color: #1976d2;">
+                    ℹ️ This VP will handle issues for grades: <strong>${vpGrades}</strong>
+                </p>
+                <div class="form-group">
+                    <label>VP ID</label>
+                    <input type="text" id="vpId" placeholder="e.g., VP001" required>
+                </div>
+                <div class="form-group">
+                    <label>VP Name</label>
+                    <input type="text" id="vpName" required>
+                </div>
+                <div class="form-group">
+                    <label>School/Branch</label>
+                    <input type="text" id="vpSchool" placeholder="e.g., DPS Nadergul">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="password" required>
+                </div>
+                <button type="submit" class="btn-primary">Register ${vpLabel}</button>
+            </form>
+        `;
+
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const vpId = document.getElementById('vpId').value.trim();
+            const vpName = document.getElementById('vpName').value.trim();
+            const vpSchool = document.getElementById('vpSchool').value.trim();
+            const password = document.getElementById('password').value;
+
+            // Validation
+            if (!vpId || !vpName || !password) {
+                showModal('Error', 'Please fill in all required fields.', 'error');
+                return;
+            }
+
+            try {
+                showLoading();
+                const client = window.supabaseClient.getClient();
+
+                console.log('Starting VP registration for:', vpId);
+
+                // Check if username already exists
+                const { data: existingUser, error: userCheckError } = await client
+                    .from('users')
+                    .select('username')
+                    .eq('username', vpId)
+                    .maybeSingle();
+
+                if (userCheckError) {
+                    console.error('Error checking username:', userCheckError);
+                    throw new Error(`Error checking username: ${userCheckError.message}`);
+                }
+
+                if (existingUser) {
+                    hideLoading();
+                    showModal('Error', `Username ${vpId} already exists. Please use a different VP ID.`, 'error');
+                    return;
+                }
+
+                // Insert VP record into vice_principals table
+                console.log('Inserting VP record...');
+                const { data: vpData, error: vpError } = await client
+                    .from('vice_principals')
+                    .insert([{
+                        id: vpId,
+                        name: vpName,
+                        school: vpSchool || null
+                    }])
+                    .select();
+
+                if (vpError) {
+                    console.error('Error inserting VP:', vpError);
+                    throw new Error(`Failed to create VP record: ${vpError.message}`);
+                }
+                console.log('VP record created:', vpData);
+
+                // Create user account
+                console.log('Creating user account...');
+                const { data: userData, error: userError } = await client
+                    .from('users')
+                    .insert([{
+                        username: vpId,
+                        password: password,
+                        name: vpName,
+                        role: userType
+                    }])
+                    .select();
+
+                if (userError) {
+                    console.error('Error creating user account:', userError);
+                    // Try to rollback VP creation
+                    await client.from('vice_principals').delete().eq('id', vpId);
+                    throw new Error(`Failed to create user account: ${userError.message}`);
+                }
+                console.log('User account created:', userData);
+
+                hideLoading();
+                showModal('Success', `${vpLabel} registered successfully!\n\nVP Name: ${vpName}\nID: ${vpId}\n${vpSchool ? `School: ${vpSchool}\n` : ''}Username: ${vpId}\nPassword: ${password}\nGrades: ${vpGrades}\n\nYou can now login with these credentials.`, 'success');
                 document.getElementById('registerForm').reset();
             } catch (error) {
                 console.error('Registration failed:', error);
