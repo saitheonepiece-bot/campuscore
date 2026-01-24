@@ -214,12 +214,13 @@ const menuItems = {
     { id: 'teacherschedule', icon: '👨‍🏫', label: 'Teacher Schedule' },
     { id: 'examschedule', icon: '📝', label: 'Exam Schedule' },
     { id: 'manualmarks', icon: '📊', label: 'Manual Marks Upload' },
-    { id: 'bulkupload', icon: '📤', label: 'Bulk Students Upload' },
+    { id: 'bulkupload', icon: '📤', label: 'New Students Upload' },
     { id: 'marksapproval', icon: '✅', label: 'Marks Approval' },
     { id: 'appointteacher', icon: '👨‍🏫', label: 'Appoint Teacher' },
     { id: 'assignduties', icon: '📋', label: 'Assign Duties' },
     { id: 'vpissues', icon: '⚠️', label: 'Issues' },
     { id: 'issuesdashboard', icon: '📋', label: 'Issues Dashboard' },
+    { id: 'escalatedissues', icon: '🚨', label: 'Escalated Issues' },
     { id: 'attendanceanalytics', icon: '📈', label: 'Attendance Analytics' },
     { id: 'performanceanalytics', icon: '🎯', label: 'Performance Analytics' },
     { id: 'studentanalysis', icon: '👥', label: 'Student Analysis' },
@@ -363,7 +364,7 @@ function organizeMenuSections(items, role) {
 
     const mainIds = ['home', 'profile', 'changepassword', 'classdashboard'];
     const academicIds = ['attendance', 'markattendance', 'ctmarkattendance', 'homework', 'viewhomework', 'examresults', 'uploadmarks', 'viewexamresults', 'viewreportcards', 'examschedule', 'timetable', 'managetimetable', 'ctmanagetimetable', 'myclasses', 'uploadexam', 'uploadcca'];
-    const adminIds = ['manageposts', 'appointteacher', 'assignduties', 'removestudent', 'deletestudent', 'holidays', 'register', 'myduties', 'classes', 'classmanagement', 'teacherissues', 'coordissues', 'vpissues', 'svpissues', 'hassanissues', 'bulkupload', 'issuesdashboard']; // PROMPT 2 & 3 - NEW CODE
+    const adminIds = ['manageposts', 'appointteacher', 'assignduties', 'removestudent', 'deletestudent', 'holidays', 'register', 'myduties', 'classes', 'classmanagement', 'homeworkmanagement', 'timetablemanagement', 'teacherschedule', 'examschedule', 'manualmarks', 'bulkupload', 'marksapproval', 'teacherissues', 'coordissues', 'vpissues', 'svpissues', 'hassanissues', 'issuesdashboard', 'escalatedissues']; // PROMPT 2 & 3 - NEW CODE
     const reportsIds = ['reportcards', 'analytics', 'principalanalytics', 'coordinatoranalytics', 'teacheranalytics', 'attendanceanalytics', 'performanceanalytics', 'studentanalysis']; // PROMPT 3 - NEW CODE
 
     items.forEach(item => {
@@ -572,6 +573,9 @@ function renderTab(tabId) {
         // PROMPT 3 - NEW CODE: Analytics and Dashboard tabs
         case 'issuesdashboard':
             renderIssuesDashboard();
+            break;
+        case 'escalatedissues':
+            renderEscalatedIssues();
             break;
         case 'principalanalytics':
             renderPrincipalAnalytics();
@@ -3440,7 +3444,7 @@ async function renderVPIssues() {
 
             <div style="margin-bottom: 20px;">
                 <button class="btn-tab active" onclick="showIssueTab('pending')" id="tab-pending">📋 Pending (${pendingIssues.length})</button>
-                <button class="btn-tab" onclick="showIssueTab('history')" id="tab-history">📚 History (${resolvedIssues.length})</button>
+                <button class="btn-tab" onclick="showIssueTab('history')" id="tab-history">✅ Resolved Issues (${resolvedIssues.length})</button>
             </div>
 
             <div id="pending-tab">
@@ -5842,43 +5846,54 @@ async function renderRemoveStudent() {
     const contentArea = document.getElementById('contentArea');
     const client = window.supabaseClient.getClient();
 
-    const { data: students } = await client
-        .from('students')
-        .select('*')
-        .eq('status', 'active')
-        .order('name');
+    try {
+        const { data: students, error } = await client
+            .from('students')
+            .select('*')
+            .eq('status', 'active')
+            .order('name');
 
-    contentArea.innerHTML = `
-        <div class="card">
-            <h3>🚫 Remove Student (Mark Inactive)</h3>
-            <p style="color: #e74c3c; margin-bottom: 20px;">⚠️ This will mark the student as inactive. Student data will be preserved.</p>
+        if (error) throw error;
 
-            <table style="width: 100%; margin-top: 20px;">
-                <thead>
-                    <tr>
-                        <th>Student ID</th>
-                        <th>Name</th>
-                        <th>Class</th>
-                        <th>Parent ID</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${students.map(s => `
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>🚫 Remove Student (Mark Inactive)</h3>
+                <p style="color: #e74c3c; margin-bottom: 20px;">⚠️ This will mark the student as inactive. Student data will be preserved.</p>
+
+                <table style="width: 100%; margin-top: 20px;">
+                    <thead>
                         <tr>
-                            <td>${s.id}</td>
-                            <td>${s.name}</td>
-                            <td>${s.class}</td>
-                            <td>${s.parent_id}</td>
-                            <td>
-                                <button class="btn-danger" onclick="removeStudent(${s.id}, '${s.name}')">Remove</button>
-                            </td>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Class</th>
+                            <th>Parent ID</th>
+                            <th>Action</th>
                         </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        </div>
-    `;
+                    </thead>
+                    <tbody>
+                        ${students && students.length > 0 ? students.map(s => `
+                            <tr>
+                                <td>${s.id}</td>
+                                <td>${s.name}</td>
+                                <td>${s.class}</td>
+                                <td>${s.parent_id || 'N/A'}</td>
+                                <td>
+                                    <button class="btn-danger" onclick="removeStudent(${s.id}, '${s.name.replace(/'/g, "\\'")}')">Remove</button>
+                                </td>
+                            </tr>
+                        `).join('') : '<tr><td colspan="5" style="text-align: center;">No active students found</td></tr>'}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } catch (error) {
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>🚫 Remove Student (Mark Inactive)</h3>
+                <p style="color: #e74c3c;">Error loading students: ${error.message}</p>
+            </div>
+        `;
+    }
 }
 
 window.removeStudent = async function(studentId, studentName) {
@@ -5906,46 +5921,57 @@ async function renderDeleteStudent() {
     const contentArea = document.getElementById('contentArea');
     const client = window.supabaseClient.getClient();
 
-    const { data: students } = await client
-        .from('students')
-        .select('*')
-        .eq('status', 'removed')
-        .order('name');
+    try {
+        const { data: students, error } = await client
+            .from('students')
+            .select('*')
+            .eq('status', 'removed')
+            .order('name');
 
-    contentArea.innerHTML = `
-        <div class="card">
-            <h3>❌ Delete Student (Permanent)</h3>
-            <p style="color: #c0392b; margin-bottom: 20px; font-weight: bold;">⚠️ WARNING: This will PERMANENTLY delete the student. This action CANNOT be undone!</p>
-            <p style="margin-bottom: 20px;">Only students marked as "removed" can be permanently deleted.</p>
+        if (error) throw error;
 
-            ${students.length > 0 ? `
-                <table style="width: 100%; margin-top: 20px;">
-                    <thead>
-                        <tr>
-                            <th>Student ID</th>
-                            <th>Name</th>
-                            <th>Class</th>
-                            <th>Status</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${students.map(s => `
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>❌ Delete Student (Permanent)</h3>
+                <p style="color: #c0392b; margin-bottom: 20px; font-weight: bold;">⚠️ WARNING: This will PERMANENTLY delete the student. This action CANNOT be undone!</p>
+                <p style="margin-bottom: 20px;">Only students marked as "removed" can be permanently deleted.</p>
+
+                ${students && students.length > 0 ? `
+                    <table style="width: 100%; margin-top: 20px;">
+                        <thead>
                             <tr>
-                                <td>${s.id}</td>
-                                <td>${s.name}</td>
-                                <td>${s.class}</td>
-                                <td><span class="badge badge-${s.status}">${s.status}</span></td>
-                                <td>
-                                    <button class="btn-danger" onclick="deleteStudentPermanent(${s.id}, '${s.name}')">Delete Permanently</button>
-                                </td>
+                                <th>Student ID</th>
+                                <th>Name</th>
+                                <th>Class</th>
+                                <th>Status</th>
+                                <th>Action</th>
                             </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            ` : '<p>No students marked as "removed". Use "Remove Student" feature first to mark students for deletion.</p>'}
-        </div>
-    `;
+                        </thead>
+                        <tbody>
+                            ${students.map(s => `
+                                <tr>
+                                    <td>${s.id}</td>
+                                    <td>${s.name}</td>
+                                    <td>${s.class}</td>
+                                    <td><span class="badge badge-${s.status}">${s.status}</span></td>
+                                    <td>
+                                        <button class="btn-danger" onclick="deleteStudentPermanent(${s.id}, '${s.name.replace(/'/g, "\\'")}')">Delete Permanently</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                ` : '<p>No students marked as "removed". Use "Remove Student" feature first to mark students for deletion.</p>'}
+            </div>
+        `;
+    } catch (error) {
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>❌ Delete Student (Permanent)</h3>
+                <p style="color: #e74c3c;">Error loading students: ${error.message}</p>
+            </div>
+        `;
+    }
 }
 
 window.deleteStudentPermanent = async function(studentId, studentName) {
@@ -7629,11 +7655,12 @@ window.showStudentsDetail = async function() {
                 </div>
 
                 <div class="form-group" style="max-width: 400px; margin-bottom: 20px;">
-                    <label>Filter by Status</label>
-                    <select id="studentStatusFilter" onchange="filterStudentsTable()" style="padding: 10px; width: 100%; border: 1px solid #ddd; border-radius: 5px;">
-                        <option value="all">All Students</option>
-                        <option value="active">Active Only</option>
-                        <option value="inactive">Inactive Only</option>
+                    <label>Filter by Grade</label>
+                    <select id="studentGradeFilter" onchange="filterStudentsTable()" style="padding: 10px; width: 100%; border: 1px solid #ddd; border-radius: 5px;">
+                        <option value="all">All Grades</option>
+                        ${[...new Set(students?.map(s => s.class?.match(/^\d+/)?.[0] || '').filter(Boolean))].sort((a, b) => parseInt(a) - parseInt(b)).map(grade => `
+                            <option value="${grade}">Grade ${grade}</option>
+                        `).join('')}
                     </select>
                 </div>
 
@@ -7649,7 +7676,7 @@ window.showStudentsDetail = async function() {
                         </thead>
                         <tbody id="studentsTableBody">
                             ${students?.map(student => `
-                                <tr class="student-row" data-status="${student.status || 'active'}">
+                                <tr class="student-row" data-class="${student.class}" data-status="${student.status || 'active'}">
                                     <td>${student.id}</td>
                                     <td>${student.name}</td>
                                     <td>${student.class}</td>
@@ -7668,12 +7695,13 @@ window.showStudentsDetail = async function() {
 };
 
 window.filterStudentsTable = function() {
-    const filter = document.getElementById('studentStatusFilter')?.value || 'all';
+    const filter = document.getElementById('studentGradeFilter')?.value || 'all';
     const rows = document.querySelectorAll('.student-row');
 
     rows.forEach(row => {
-        const status = row.getAttribute('data-status') || 'active';
-        if (filter === 'all' || status === filter) {
+        const studentClass = row.getAttribute('data-class') || '';
+        const grade = studentClass.match(/^\d+/)?.[0] || '';
+        if (filter === 'all' || grade === filter) {
             row.style.display = '';
         } else {
             row.style.display = 'none';
@@ -9339,6 +9367,160 @@ window.viewIssueDetails = function(issueId) {
             </div>
         </div>
     `, 'info');
+};
+
+// ========== ESCALATED ISSUES ==========
+async function renderEscalatedIssues() {
+    const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+
+    try {
+        const { data: escalatedIssues, error } = await client
+            .from('issues')
+            .select('*')
+            .eq('status', 'escalated')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>🚨 ESCALATED ISSUES</h3>
+                <p style="color: #666; margin-bottom: 20px;">View and manage escalated issues - can be revoked if resolved</p>
+
+                <!-- Stats -->
+                <div class="performance-overview" style="margin-bottom: 30px;">
+                    <div class="perf-stat">
+                        <div class="perf-value">${escalatedIssues?.length || 0}</div>
+                        <div class="perf-label">🚨 Escalated Issues</div>
+                        <div class="perf-sublabel">Requires attention</div>
+                    </div>
+                    <div class="perf-stat">
+                        <div class="perf-value">${escalatedIssues?.filter(i => i.priority === 'critical').length || 0}</div>
+                        <div class="perf-label">🔴 Critical</div>
+                        <div class="perf-sublabel">Urgent priority</div>
+                    </div>
+                    <div class="perf-stat">
+                        <div class="perf-value">${escalatedIssues?.filter(i => i.priority === 'high').length || 0}</div>
+                        <div class="perf-label">🟠 High</div>
+                        <div class="perf-sublabel">High priority</div>
+                    </div>
+                </div>
+
+                <!-- Escalated Issues Table -->
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Title</th>
+                                <th>Student</th>
+                                <th>Class</th>
+                                <th>Priority</th>
+                                <th>Reported By</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${escalatedIssues && escalatedIssues.length > 0 ? escalatedIssues.map(issue => `
+                                <tr>
+                                    <td>${issue.id}</td>
+                                    <td><strong>${issue.title}</strong></td>
+                                    <td>${issue.student_name || 'N/A'}</td>
+                                    <td>${issue.class || 'N/A'}</td>
+                                    <td>
+                                        <span class="badge ${
+                                            issue.priority === 'critical' ? 'badge-pending' :
+                                            issue.priority === 'high' ? 'badge-pending' :
+                                            'badge-resolved'
+                                        }">
+                                            ${issue.priority === 'critical' ? '🔴' :
+                                              issue.priority === 'high' ? '🟠' :
+                                              issue.priority === 'normal' ? '🟡' : '🟢'}
+                                            ${(issue.priority || 'normal').toUpperCase()}
+                                        </span>
+                                    </td>
+                                    <td>${issue.reported_by || 'Unknown'}</td>
+                                    <td>${new Date(issue.created_at).toLocaleDateString()}</td>
+                                    <td>
+                                        <button onclick="viewEscalatedIssueDetails(${issue.id})" class="btn-primary" style="padding: 5px 10px; font-size: 12px; margin-right: 5px;">View</button>
+                                        <button onclick="revokeEscalation(${issue.id}, '${issue.title.replace(/'/g, "\\'")}
+')" class="btn-secondary" style="padding: 5px 10px; font-size: 12px;">Revoke</button>
+                                    </td>
+                                </tr>
+                            `).join('') : '<tr><td colspan="8" style="text-align: center;">No escalated issues found</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+
+                <p style="color: #999; margin-top: 20px; text-align: center;">
+                    💡 Tip: Click "Revoke" to mark an issue as resolved and move it back to resolved status
+                </p>
+            </div>
+        `;
+    } catch (error) {
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>🚨 ESCALATED ISSUES</h3>
+                <p style="color: #e74c3c;">Error loading escalated issues: ${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+// View escalated issue details
+window.viewEscalatedIssueDetails = async function(issueId) {
+    try {
+        const client = window.supabaseClient.getClient();
+        const { data: issue, error } = await client
+            .from('issues')
+            .select('*')
+            .eq('id', issueId)
+            .single();
+
+        if (error) throw error;
+
+        showModal('Issue Details', `
+            <div style="text-align: left;">
+                <p><strong>Title:</strong> ${issue.title}</p>
+                <p><strong>Description:</strong> ${issue.description || 'No description'}</p>
+                <p><strong>Student:</strong> ${issue.student_name || 'N/A'} ${issue.student_id ? `(ID: ${issue.student_id})` : ''}</p>
+                <p><strong>Class:</strong> ${issue.class || 'N/A'}</p>
+                <p><strong>Priority:</strong> ${(issue.priority || 'normal').toUpperCase()}</p>
+                <p><strong>Reported By:</strong> ${issue.reported_by || 'Unknown'}</p>
+                <p><strong>Assigned To:</strong> ${issue.assigned_to || 'Unassigned'}</p>
+                <p><strong>Created:</strong> ${new Date(issue.created_at).toLocaleString()}</p>
+                <p><strong>Status:</strong> <span style="color: #e74c3c; font-weight: bold;">ESCALATED</span></p>
+            </div>
+        `, 'info');
+    } catch (error) {
+        showModal('Error', 'Failed to load issue details: ' + error.message, 'error');
+    }
+};
+
+// Revoke escalation (mark as resolved)
+window.revokeEscalation = async function(issueId, issueTitle) {
+    showModal('Confirm Revoke', `Are you sure you want to revoke the escalation for "${issueTitle}"? This will mark it as resolved.`, 'warning', true, async function() {
+        try {
+            showLoading();
+            const client = window.supabaseClient.getClient();
+
+            const { error } = await client
+                .from('issues')
+                .update({ status: 'resolved', updated_at: new Date().toISOString() })
+                .eq('id', issueId);
+
+            if (error) throw error;
+
+            hideLoading();
+            showModal('Success', 'Escalation revoked successfully! Issue marked as resolved.', 'success');
+            renderEscalatedIssues(); // Refresh the list
+        } catch (error) {
+            hideLoading();
+            showModal('Error', 'Failed to revoke escalation: ' + error.message, 'error');
+        }
+    });
 };
 
 // ========== PRINCIPAL ANALYTICS DASHBOARD ==========
