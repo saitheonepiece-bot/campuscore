@@ -6076,24 +6076,35 @@ async function renderRemoveStudent() {
 }
 
 window.removeStudent = async function(studentId, studentName) {
-    showModal('Confirm Remove', `Are you sure you want to remove ${studentName}? Student will be marked as inactive.`, 'warning', true, async function() {
-        try {
-            showLoading();
-            const { error } = await window.supabaseClient.getClient()
-                .from('students')
-                .update({ status: 'inactive' })
-                .eq('id', studentId);
+    showConfirm(
+        'Confirm Remove',
+        `Are you sure you want to remove ${studentName}?\n\nStudent will be marked as removed and can be permanently deleted later.`,
+        async function() {
+            try {
+                showLoading();
+                const client = window.supabaseClient.getClient();
 
-            if (error) throw error;
+                // Update student status to 'removed'
+                const { error } = await client
+                    .from('students')
+                    .update({ status: 'removed' })
+                    .eq('id', studentId);
 
-            hideLoading();
-            showModal('Success', `${studentName} has been removed (marked inactive)`, 'success');
-            renderRemoveStudent();
-        } catch (error) {
-            hideLoading();
-            showModal('Error', error.message, 'error');
-        }
-    });
+                if (error) throw error;
+
+                hideLoading();
+                showModal('Success', `${studentName} has been removed. You can permanently delete this student from the "Delete Student" tab.`, 'success');
+                renderRemoveStudent();
+            } catch (error) {
+                hideLoading();
+                showModal('Error', `Failed to remove student: ${error.message}`, 'error');
+            }
+        },
+        null,
+        'Remove',
+        'Cancel',
+        true
+    );
 };
 
 async function renderDeleteStudent() {
@@ -6154,24 +6165,47 @@ async function renderDeleteStudent() {
 }
 
 window.deleteStudentPermanent = async function(studentId, studentName) {
-    showModal('FINAL WARNING', `You are about to PERMANENTLY DELETE ${studentName}. This CANNOT be undone. Type "DELETE" to confirm.`, 'error', true, async function() {
-        try {
-            showLoading();
-            const { error } = await window.supabaseClient.getClient()
-                .from('students')
-                .delete()
-                .eq('id', studentId);
+    // First confirmation
+    showConfirm(
+        '⚠️ FINAL WARNING',
+        `You are about to PERMANENTLY DELETE ${studentName}.\n\n⚠️ This action CANNOT be undone!\n⚠️ All data will be lost forever!\n\nAre you absolutely sure?`,
+        async function() {
+            // Second confirmation
+            showConfirm(
+                '🚨 LAST CHANCE',
+                `This is your FINAL confirmation.\n\nDeleting ${studentName} (ID: ${studentId}) will:\n\n✗ Remove ALL student records\n✗ Delete ALL attendance data\n✗ Remove ALL exam results\n✗ Cannot be recovered\n\nProceed with permanent deletion?`,
+                async function() {
+                    try {
+                        showLoading();
+                        const client = window.supabaseClient.getClient();
 
-            if (error) throw error;
+                        // Delete the student
+                        const { error } = await client
+                            .from('students')
+                            .delete()
+                            .eq('id', studentId);
 
-            hideLoading();
-            showModal('Success', `${studentName} has been permanently deleted`, 'success');
-            renderDeleteStudent();
-        } catch (error) {
-            hideLoading();
-            showModal('Error', error.message, 'error');
-        }
-    });
+                        if (error) throw error;
+
+                        hideLoading();
+                        showModal('Deleted', `${studentName} has been permanently deleted from the system.`, 'success');
+                        renderDeleteStudent();
+                    } catch (error) {
+                        hideLoading();
+                        showModal('Error', `Failed to delete student: ${error.message}`, 'error');
+                    }
+                },
+                null,
+                'YES, DELETE FOREVER',
+                'Cancel',
+                true
+            );
+        },
+        null,
+        'Continue to Final Step',
+        'Cancel',
+        true
+    );
 };
 
 async function renderManageParents() {
