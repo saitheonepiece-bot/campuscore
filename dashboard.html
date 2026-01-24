@@ -208,6 +208,7 @@ const menuItems = {
     ],
     viceprincipal: [
         { id: 'home', icon: '🏠', label: 'Dashboard' },
+        { id: 'classmanagement', icon: '🏫', label: 'Class Management' },
         { id: 'appointteacher', icon: '👨‍🏫', label: 'Appoint Teacher' },
         { id: 'assignduties', icon: '📋', label: 'Assign Duties' },
         { id: 'vpissues', icon: '⚠️', label: 'Issues' },
@@ -356,7 +357,7 @@ function organizeMenuSections(items, role) {
 
     const mainIds = ['home', 'profile', 'changepassword', 'classdashboard'];
     const academicIds = ['attendance', 'markattendance', 'ctmarkattendance', 'homework', 'viewhomework', 'examresults', 'uploadmarks', 'viewexamresults', 'viewreportcards', 'examschedule', 'timetable', 'managetimetable', 'ctmanagetimetable', 'myclasses', 'uploadexam', 'uploadcca'];
-    const adminIds = ['manageposts', 'appointteacher', 'assignduties', 'removestudent', 'deletestudent', 'holidays', 'register', 'myduties', 'classes', 'teacherissues', 'coordissues', 'vpissues', 'svpissues', 'hassanissues', 'bulkupload', 'issuesdashboard']; // PROMPT 2 & 3 - NEW CODE
+    const adminIds = ['manageposts', 'appointteacher', 'assignduties', 'removestudent', 'deletestudent', 'holidays', 'register', 'myduties', 'classes', 'classmanagement', 'teacherissues', 'coordissues', 'vpissues', 'svpissues', 'hassanissues', 'bulkupload', 'issuesdashboard']; // PROMPT 2 & 3 - NEW CODE
     const reportsIds = ['reportcards', 'analytics', 'principalanalytics', 'coordinatoranalytics', 'teacheranalytics', 'attendanceanalytics', 'performanceanalytics', 'studentanalysis']; // PROMPT 3 - NEW CODE
 
     items.forEach(item => {
@@ -514,6 +515,9 @@ function renderTab(tabId) {
         // Vice Principal tabs
         case 'appointteacher':
             renderAppointTeacher();
+            break;
+        case 'classmanagement':
+            renderClassManagement();
             break;
         case 'assignduties':
             renderAssignDuties();
@@ -3048,6 +3052,244 @@ async function renderAppointTeacher() {
         }
     });
 }
+
+async function renderClassManagement() {
+    const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+
+    // Fetch all classes
+    const { data: classes, error: classesError } = await client
+        .from('classes')
+        .select('*')
+        .order('name');
+
+    // Fetch all class teachers
+    const { data: classTeachers } = await client
+        .from('class_teachers')
+        .select('*')
+        .eq('status', 'active');
+
+    if (classesError) {
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>🏫 Class Management</h3>
+                <p style="color: #e74c3c;">Error loading classes: ${classesError.message}</p>
+            </div>
+        `;
+        return;
+    }
+
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>🏫 CLASS MANAGEMENT</h3>
+            <p style="color: #666; margin-bottom: 20px;">Manage classes, sections, and class teachers</p>
+
+            <!-- Add New Class Section -->
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+                <h4>➕ Add New Class</h4>
+                <form id="addClassForm" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 15px; align-items: end;">
+                    <div class="form-group" style="margin: 0;">
+                        <label>Class Name *</label>
+                        <input type="text" id="newClassName" placeholder="e.g., 8B, 10A" required>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label>Grade *</label>
+                        <input type="number" id="newGrade" placeholder="e.g., 8" min="1" max="12" required>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label>Section *</label>
+                        <input type="text" id="newSection" placeholder="e.g., A, B" required>
+                    </div>
+                    <button type="submit" class="btn-primary" style="height: 42px;">Add Class</button>
+                </form>
+            </div>
+
+            <!-- Stats Overview -->
+            <div class="performance-overview" style="margin-bottom: 30px;">
+                <div class="perf-stat">
+                    <div class="perf-value">${classes?.length || 0}</div>
+                    <div class="perf-label">📚 Total Classes</div>
+                    <div class="perf-sublabel">All classes</div>
+                </div>
+                <div class="perf-stat">
+                    <div class="perf-value">${classTeachers?.length || 0}</div>
+                    <div class="perf-label">👨‍🏫 Class Teachers</div>
+                    <div class="perf-sublabel">Assigned</div>
+                </div>
+                <div class="perf-stat">
+                    <div class="perf-value">${classes?.reduce((sum, c) => sum + (c.total_students || 0), 0) || 0}</div>
+                    <div class="perf-label">👥 Total Students</div>
+                    <div class="perf-sublabel">Across all classes</div>
+                </div>
+            </div>
+
+            <!-- Classes Table -->
+            <div style="overflow-x: auto;">
+                <table style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Class Name</th>
+                            <th>Grade</th>
+                            <th>Section</th>
+                            <th>Class Teacher</th>
+                            <th>Total Students</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${classes && classes.length > 0 ? classes.map(c => {
+                            const teacher = classTeachers?.find(t => t.id === c.class_teacher_id);
+                            return `
+                                <tr>
+                                    <td><strong>${c.name}</strong></td>
+                                    <td>${c.grade || 'N/A'}</td>
+                                    <td>${c.section || 'N/A'}</td>
+                                    <td>
+                                        <select onchange="updateClassTeacher(${c.id}, this.value)" style="padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                                            <option value="">-- No Teacher --</option>
+                                            ${classTeachers?.map(t => `
+                                                <option value="${t.id}" ${t.id === c.class_teacher_id ? 'selected' : ''}>
+                                                    ${t.name} (${t.id})
+                                                </option>
+                                            `).join('')}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="number"
+                                            value="${c.total_students || 0}"
+                                            onchange="updateTotalStudents(${c.id}, this.value)"
+                                            style="width: 60px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                                    </td>
+                                    <td>
+                                        <span style="color: ${c.is_active !== false ? '#27ae60' : '#e74c3c'};">
+                                            ${c.is_active !== false ? '✓ Active' : '✗ Inactive'}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button onclick="toggleClassStatus(${c.id}, ${c.is_active !== false})"
+                                            class="btn-secondary" style="padding: 5px 10px; font-size: 12px;">
+                                            ${c.is_active !== false ? 'Deactivate' : 'Activate'}
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('') : '<tr><td colspan="7" style="text-align: center;">No classes found</td></tr>'}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+
+    // Handle add class form submission
+    document.getElementById('addClassForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const className = document.getElementById('newClassName').value.trim();
+        const grade = parseInt(document.getElementById('newGrade').value);
+        const section = document.getElementById('newSection').value.trim();
+
+        try {
+            showLoading();
+
+            // Check if class already exists
+            const { data: existing } = await client
+                .from('classes')
+                .select('id')
+                .eq('name', className)
+                .maybeSingle();
+
+            if (existing) {
+                throw new Error(`Class "${className}" already exists`);
+            }
+
+            // Insert new class
+            const { error } = await client
+                .from('classes')
+                .insert([{
+                    name: className,
+                    grade: grade,
+                    section: section,
+                    total_students: 0,
+                    is_active: true
+                }]);
+
+            if (error) throw error;
+
+            hideLoading();
+            showModal('Success', `Class "${className}" added successfully!`, 'success');
+            renderClassManagement(); // Refresh
+        } catch (error) {
+            hideLoading();
+            showModal('Error', error.message || 'Failed to add class', 'error');
+        }
+    });
+}
+
+// Helper function to update class teacher
+window.updateClassTeacher = async function(classId, teacherId) {
+    try {
+        showLoading();
+        const client = window.supabaseClient.getClient();
+
+        const { error } = await client
+            .from('classes')
+            .update({ class_teacher_id: teacherId || null })
+            .eq('id', classId);
+
+        if (error) throw error;
+
+        hideLoading();
+        showModal('Success', 'Class teacher updated successfully!', 'success');
+    } catch (error) {
+        hideLoading();
+        showModal('Error', error.message || 'Failed to update class teacher', 'error');
+    }
+};
+
+// Helper function to update total students
+window.updateTotalStudents = async function(classId, totalStudents) {
+    try {
+        showLoading();
+        const client = window.supabaseClient.getClient();
+
+        const { error } = await client
+            .from('classes')
+            .update({ total_students: parseInt(totalStudents) || 0 })
+            .eq('id', classId);
+
+        if (error) throw error;
+
+        hideLoading();
+        showModal('Success', 'Total students updated!', 'success');
+    } catch (error) {
+        hideLoading();
+        showModal('Error', error.message || 'Failed to update total students', 'error');
+    }
+};
+
+// Helper function to toggle class status
+window.toggleClassStatus = async function(classId, currentStatus) {
+    try {
+        showLoading();
+        const client = window.supabaseClient.getClient();
+
+        const newStatus = !currentStatus;
+        const { error } = await client
+            .from('classes')
+            .update({ is_active: newStatus })
+            .eq('id', classId);
+
+        if (error) throw error;
+
+        hideLoading();
+        showModal('Success', `Class ${newStatus ? 'activated' : 'deactivated'} successfully!`, 'success');
+        renderClassManagement(); // Refresh
+    } catch (error) {
+        hideLoading();
+        showModal('Error', error.message || 'Failed to toggle class status', 'error');
+    }
+};
 
 async function renderAssignDuties() {
     const contentArea = document.getElementById('contentArea');
