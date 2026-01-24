@@ -5889,10 +5889,15 @@ window.showRegisterForm = function(userType) {
             const studentId = parseInt(document.getElementById('studentId').value);
             const studentName = document.getElementById('studentName').value.trim();
             const studentClass = document.getElementById('studentClass').value.trim();
-            const parentId = document.getElementById('parentId').value.trim();
+            const parentName = document.getElementById('parentName').value.trim();
+            const parentPhone = document.getElementById('parentPhone').value.trim();
+
+            // Auto-generate parent ID: P[StudentID]A
+            const parentId = `P${studentId}A`;
+            const defaultPassword = 'parent123';
 
             // Validation
-            if (!studentId || !studentName || !studentClass || !parentId) {
+            if (!studentId || !studentName || !studentClass || !parentName) {
                 showModal('Error', 'Please fill in all required fields.', 'error');
                 return;
             }
@@ -5906,7 +5911,7 @@ window.showRegisterForm = function(userType) {
                 showLoading();
                 const client = window.supabaseClient.getClient();
 
-                console.log('Starting student registration for:', studentId);
+                console.log('Starting student & parent registration for:', studentId);
 
                 // Check if student ID already exists
                 console.log('Checking if student ID exists:', studentId);
@@ -5947,8 +5952,68 @@ window.showRegisterForm = function(userType) {
                 }
                 console.log('Student record created:', studentData);
 
+                // Auto-enroll in class_members if table exists
+                try {
+                    console.log('Checking for class_members table...');
+                    const { data: classData } = await client
+                        .from('classes')
+                        .select('id')
+                        .eq('name', studentClass)
+                        .maybeSingle();
+
+                    if (classData) {
+                        console.log('Enrolling student in class_members...');
+                        await client
+                            .from('class_members')
+                            .insert([{
+                                class_id: classData.id,
+                                student_id: studentId,
+                                is_active: true
+                            }]);
+                        console.log('Student enrolled in class_members');
+                    }
+                } catch (enrollError) {
+                    console.log('class_members enrollment skipped (table may not exist yet)');
+                }
+
+                // Insert parent record
+                console.log('Creating parent record...');
+                const { data: parentData, error: parentError } = await client
+                    .from('parents')
+                    .insert([{
+                        id: parentId,
+                        name: parentName,
+                        student_id: studentId,
+                        phone: parentPhone || null
+                    }])
+                    .select();
+
+                if (parentError) {
+                    console.error('Error creating parent:', parentError);
+                    // Don't fail - parent might already exist
+                    console.log('Parent creation skipped (may already exist)');
+                }
+
+                // Create parent user account
+                console.log('Creating parent user account...');
+                const { data: userData, error: userError } = await client
+                    .from('users')
+                    .insert([{
+                        username: parentId,
+                        password: defaultPassword,
+                        name: parentName,
+                        role: 'parent'
+                    }])
+                    .select();
+
+                if (userError) {
+                    console.error('Error creating user:', userError);
+                    // Don't fail - user might already exist
+                    console.log('User creation skipped (may already exist)');
+                }
+
                 hideLoading();
-                showModal('Success', `Student registered successfully!\n\nStudent: ${studentName}\nID: ${studentId}\nClass: ${studentClass}\n\nNext: Register parent with ID: ${parentId}`, 'success');
+                showModal('Success', `✅ Student & Parent registered successfully!\n\n👨‍🎓 Student: ${studentName}\n🆔 Student ID: ${studentId}\n📚 Class: ${studentClass}\n\n👨‍👩‍👧 Parent: ${parentName}\n🔑 Parent Login: ${parentId}\n🔐 Password: ${defaultPassword}\n\nParent can now login!`, 'success');
                 document.getElementById('registerForm').reset();
             } catch (error) {
                 console.error('Registration failed:', error);
@@ -9518,129 +9583,181 @@ async function renderStudentAnalysis() {
     const contentArea = document.getElementById('contentArea');
     const client = window.supabaseClient.getClient();
 
-    // Fetch all students
-    const { data: students, error } = await client
-        .from('students')
-        .select('*')
-        .eq('status', 'active')
-        .order('name');
+    try {
+        // Check if class_members table exists (after migration)
+        const { data: tableCheck } = await client
+            .from('class_members')
+            .select('id')
+            .limit(1);
 
-    if (error) {
+        const hasClassMembers = tableCheck !== null;
+
+        // Fetch all students with optional class enrollment info
+        let students;
+        if (hasClassMembers) {
+            // Use the new structure with class_members
+            const { data: studentsData, error } = await client
+                .from('students')
+                .select(`
+                    *,
+                    class_members (
+                        id,
+                        is_active,
+                        joined_date,
+                        classes (
+                            id,
+                            name,
+                            section,
+                            pre_classes (
+                                name
+                            )
+                        )
+                    )
+                `)
+                .eq('status', 'active')
+                .order('name');
+
+            if (error) throw error;
+            students = studentsData;
+        } else {
+            // Fallback to simple query
+            const { data: studentsData, error } = await client
+                .from('students')
+                .select('*')
+                .eq('status', 'active')
+                .order('name');
+
+            if (error) throw error;
+            students = studentsData;
+        }
+
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>👥 STUDENT ANALYSIS</h3>
+                <p style="color: #666; margin-bottom: 20px;">View and search all active students</p>
+
+                <!-- Search Box -->
+                <div style="margin-bottom: 20px;">
+                    <input
+                        type="text"
+                        id="studentSearchBox"
+                        placeholder="🔍 Search by name, ID, class, or parent ID..."
+                        style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;"
+                    >
+                </div>
+
+                <!-- Stats Overview -->
+                <div class="performance-overview" style="margin-bottom: 20px;">
+                    <div class="perf-stat">
+                        <div class="perf-value">${students.length}</div>
+                        <div class="perf-label">👥 Total Students</div>
+                        <div class="perf-sublabel">Active students</div>
+                    </div>
+                    <div class="perf-stat">
+                        <div class="perf-value">${[...new Set(students.map(s => s.class))].length}</div>
+                        <div class="perf-label">📚 Classes</div>
+                        <div class="perf-sublabel">Unique classes</div>
+                    </div>
+                    <div class="perf-stat">
+                        <div class="perf-value">${[...new Set(students.filter(s => s.parent_id).map(s => s.parent_id))].length}</div>
+                        <div class="perf-label">👨‍👩‍👧 Parents</div>
+                        <div class="perf-sublabel">Unique parents</div>
+                    </div>
+                </div>
+
+                <!-- Students Table -->
+                <div style="overflow-x: auto;">
+                    <table id="studentsTable" style="width: 100%; margin-top: 20px;">
+                        <thead>
+                            <tr>
+                                <th>Student ID</th>
+                                <th>Name</th>
+                                <th>Class</th>
+                                <th>Parent ID</th>
+                                ${hasClassMembers ? '<th>Enrollment</th>' : ''}
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody">
+                            ${students.map(s => {
+                                const enrollment = s.class_members && s.class_members.length > 0
+                                    ? s.class_members[0]
+                                    : null;
+                                const enrollmentStatus = enrollment
+                                    ? (enrollment.is_active ? '✅ Enrolled' : '⚠️ Inactive')
+                                    : '❌ Not Enrolled';
+
+                                return `
+                                    <tr class="student-row">
+                                        <td>${s.id}</td>
+                                        <td>${s.name}</td>
+                                        <td>${s.class}</td>
+                                        <td>${s.parent_id || 'N/A'}</td>
+                                        ${hasClassMembers ? `<td>${enrollmentStatus}</td>` : ''}
+                                        <td><span style="color: #27ae60; font-weight: bold;">●</span> Active</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+
+                <p style="color: #999; margin-top: 20px; text-align: center;">
+                    Showing <span id="visibleStudentCount">${students.length}</span> of ${students.length} students
+                    ${hasClassMembers ? '• <span style="color: #27ae60;">New enrollment tracking enabled</span>' : ''}
+                </p>
+            </div>
+        `;
+
+        // Add search functionality
+        const searchBox = document.getElementById('studentSearchBox');
+        const visibleCountSpan = document.getElementById('visibleStudentCount');
+
+        searchBox.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase().trim();
+            const rows = document.querySelectorAll('.student-row');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            visibleCountSpan.textContent = visibleCount;
+        });
+
+        // Subscribe to real-time updates for new students
+        const subscription = client
+            .channel('student-changes')
+            .on('postgres_changes',
+                { event: '*', schema: 'public', table: 'students' },
+                (payload) => {
+                    console.log('Student data changed:', payload);
+                    // Reload the student analysis when data changes
+                    renderStudentAnalysis();
+                }
+            )
+            .subscribe();
+
+        // Clean up subscription when navigating away
+        window.addEventListener('beforeunload', () => {
+            subscription.unsubscribe();
+        });
+
+    } catch (error) {
+        console.error('Error loading students:', error);
         contentArea.innerHTML = `
             <div class="card">
                 <h3>👥 Student Analysis</h3>
                 <p style="color: #e74c3c;">Error loading students: ${error.message}</p>
             </div>
         `;
-        return;
     }
-
-    contentArea.innerHTML = `
-        <div class="card">
-            <h3>👥 STUDENT ANALYSIS</h3>
-            <p style="color: #666; margin-bottom: 20px;">View and search all active students</p>
-
-            <!-- Search Box -->
-            <div style="margin-bottom: 20px;">
-                <input
-                    type="text"
-                    id="studentSearchBox"
-                    placeholder="🔍 Search by name, ID, class, or parent ID..."
-                    style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;"
-                >
-            </div>
-
-            <!-- Stats Overview -->
-            <div class="performance-overview" style="margin-bottom: 20px;">
-                <div class="perf-stat">
-                    <div class="perf-value">${students.length}</div>
-                    <div class="perf-label">👥 Total Students</div>
-                    <div class="perf-sublabel">Active students</div>
-                </div>
-                <div class="perf-stat">
-                    <div class="perf-value">${[...new Set(students.map(s => s.class))].length}</div>
-                    <div class="perf-label">📚 Classes</div>
-                    <div class="perf-sublabel">Unique classes</div>
-                </div>
-                <div class="perf-stat">
-                    <div class="perf-value">${[...new Set(students.map(s => s.parent_id))].length}</div>
-                    <div class="perf-label">👨‍👩‍👧 Parents</div>
-                    <div class="perf-sublabel">Unique parents</div>
-                </div>
-            </div>
-
-            <!-- Students Table -->
-            <div style="overflow-x: auto;">
-                <table id="studentsTable" style="width: 100%; margin-top: 20px;">
-                    <thead>
-                        <tr>
-                            <th>Student ID</th>
-                            <th>Name</th>
-                            <th>Class</th>
-                            <th>Parent ID</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="studentsTableBody">
-                        ${students.map(s => `
-                            <tr class="student-row">
-                                <td>${s.id}</td>
-                                <td>${s.name}</td>
-                                <td>${s.class}</td>
-                                <td>${s.parent_id || 'N/A'}</td>
-                                <td><span style="color: #27ae60; font-weight: bold;">●</span> Active</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-
-            <p style="color: #999; margin-top: 20px; text-align: center;">
-                Showing <span id="visibleStudentCount">${students.length}</span> of ${students.length} students
-            </p>
-        </div>
-    `;
-
-    // Add search functionality
-    const searchBox = document.getElementById('studentSearchBox');
-    const tableBody = document.getElementById('studentsTableBody');
-    const visibleCountSpan = document.getElementById('visibleStudentCount');
-
-    searchBox.addEventListener('input', (e) => {
-        const searchTerm = e.target.value.toLowerCase().trim();
-        const rows = document.querySelectorAll('.student-row');
-        let visibleCount = 0;
-
-        rows.forEach(row => {
-            const text = row.textContent.toLowerCase();
-            if (text.includes(searchTerm)) {
-                row.style.display = '';
-                visibleCount++;
-            } else {
-                row.style.display = 'none';
-            }
-        });
-
-        visibleCountSpan.textContent = visibleCount;
-    });
-
-    // Subscribe to real-time updates for new students
-    const subscription = client
-        .channel('student-changes')
-        .on('postgres_changes',
-            { event: '*', schema: 'public', table: 'students' },
-            (payload) => {
-                console.log('Student data changed:', payload);
-                // Reload the student analysis when data changes
-                renderStudentAnalysis();
-            }
-        )
-        .subscribe();
-
-    // Clean up subscription when navigating away
-    window.addEventListener('beforeunload', () => {
-        subscription.unsubscribe();
-    });
 }
 
 // END PROMPT 3 - NEW CODE
