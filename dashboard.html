@@ -214,6 +214,7 @@ const menuItems = {
         { id: 'issuesdashboard', icon: '📋', label: 'Issues Dashboard' }, // PROMPT 3 - NEW CODE
         { id: 'attendanceanalytics', icon: '📈', label: 'Attendance Analytics' }, // PROMPT 3 - NEW CODE
         { id: 'performanceanalytics', icon: '🎯', label: 'Performance Analytics' }, // PROMPT 3 - NEW CODE
+        { id: 'studentanalysis', icon: '👥', label: 'Student Analysis' },
         { id: 'removestudent', icon: '🚫', label: 'Remove Student' },
         { id: 'deletestudent', icon: '❌', label: 'Delete Student' },
         { id: 'bulkupload', icon: '📤', label: 'Bulk Upload' }, // PROMPT 2 - NEW CODE
@@ -356,7 +357,7 @@ function organizeMenuSections(items, role) {
     const mainIds = ['home', 'profile', 'changepassword', 'classdashboard'];
     const academicIds = ['attendance', 'markattendance', 'ctmarkattendance', 'homework', 'viewhomework', 'examresults', 'uploadmarks', 'viewexamresults', 'viewreportcards', 'examschedule', 'timetable', 'managetimetable', 'ctmanagetimetable', 'myclasses', 'uploadexam', 'uploadcca'];
     const adminIds = ['manageposts', 'appointteacher', 'assignduties', 'removestudent', 'deletestudent', 'holidays', 'register', 'myduties', 'classes', 'teacherissues', 'coordissues', 'vpissues', 'svpissues', 'hassanissues', 'bulkupload', 'issuesdashboard']; // PROMPT 2 & 3 - NEW CODE
-    const reportsIds = ['reportcards', 'analytics', 'principalanalytics', 'coordinatoranalytics', 'teacheranalytics', 'attendanceanalytics', 'performanceanalytics']; // PROMPT 3 - NEW CODE
+    const reportsIds = ['reportcards', 'analytics', 'principalanalytics', 'coordinatoranalytics', 'teacheranalytics', 'attendanceanalytics', 'performanceanalytics', 'studentanalysis']; // PROMPT 3 - NEW CODE
 
     items.forEach(item => {
         if (mainIds.includes(item.id)) {
@@ -576,6 +577,9 @@ function renderTab(tabId) {
             break;
         case 'performanceanalytics':
             renderPerformanceAnalytics();
+            break;
+        case 'studentanalysis':
+            renderStudentAnalysis();
             break;
         // END PROMPT 3 - NEW CODE
         default:
@@ -9508,6 +9512,135 @@ function renderPerformanceAnalytics() {
             </table>
         </div>
     `;
+}
+
+async function renderStudentAnalysis() {
+    const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+
+    // Fetch all students
+    const { data: students, error } = await client
+        .from('students')
+        .select('*')
+        .eq('status', 'active')
+        .order('name');
+
+    if (error) {
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>👥 Student Analysis</h3>
+                <p style="color: #e74c3c;">Error loading students: ${error.message}</p>
+            </div>
+        `;
+        return;
+    }
+
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>👥 STUDENT ANALYSIS</h3>
+            <p style="color: #666; margin-bottom: 20px;">View and search all active students</p>
+
+            <!-- Search Box -->
+            <div style="margin-bottom: 20px;">
+                <input
+                    type="text"
+                    id="studentSearchBox"
+                    placeholder="🔍 Search by name, ID, class, or parent ID..."
+                    style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;"
+                >
+            </div>
+
+            <!-- Stats Overview -->
+            <div class="performance-overview" style="margin-bottom: 20px;">
+                <div class="perf-stat">
+                    <div class="perf-value">${students.length}</div>
+                    <div class="perf-label">👥 Total Students</div>
+                    <div class="perf-sublabel">Active students</div>
+                </div>
+                <div class="perf-stat">
+                    <div class="perf-value">${[...new Set(students.map(s => s.class))].length}</div>
+                    <div class="perf-label">📚 Classes</div>
+                    <div class="perf-sublabel">Unique classes</div>
+                </div>
+                <div class="perf-stat">
+                    <div class="perf-value">${[...new Set(students.map(s => s.parent_id))].length}</div>
+                    <div class="perf-label">👨‍👩‍👧 Parents</div>
+                    <div class="perf-sublabel">Unique parents</div>
+                </div>
+            </div>
+
+            <!-- Students Table -->
+            <div style="overflow-x: auto;">
+                <table id="studentsTable" style="width: 100%; margin-top: 20px;">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Class</th>
+                            <th>Parent ID</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentsTableBody">
+                        ${students.map(s => `
+                            <tr class="student-row">
+                                <td>${s.id}</td>
+                                <td>${s.name}</td>
+                                <td>${s.class}</td>
+                                <td>${s.parent_id || 'N/A'}</td>
+                                <td><span style="color: #27ae60; font-weight: bold;">●</span> Active</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+
+            <p style="color: #999; margin-top: 20px; text-align: center;">
+                Showing <span id="visibleStudentCount">${students.length}</span> of ${students.length} students
+            </p>
+        </div>
+    `;
+
+    // Add search functionality
+    const searchBox = document.getElementById('studentSearchBox');
+    const tableBody = document.getElementById('studentsTableBody');
+    const visibleCountSpan = document.getElementById('visibleStudentCount');
+
+    searchBox.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase().trim();
+        const rows = document.querySelectorAll('.student-row');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            if (text.includes(searchTerm)) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        visibleCountSpan.textContent = visibleCount;
+    });
+
+    // Subscribe to real-time updates for new students
+    const subscription = client
+        .channel('student-changes')
+        .on('postgres_changes',
+            { event: '*', schema: 'public', table: 'students' },
+            (payload) => {
+                console.log('Student data changed:', payload);
+                // Reload the student analysis when data changes
+                renderStudentAnalysis();
+            }
+        )
+        .subscribe();
+
+    // Clean up subscription when navigating away
+    window.addEventListener('beforeunload', () => {
+        subscription.unsubscribe();
+    });
 }
 
 // END PROMPT 3 - NEW CODE
