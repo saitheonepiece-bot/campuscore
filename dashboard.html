@@ -98,26 +98,12 @@
             <p>Excellence in Education</p>
         </div>
 
-        <!-- PROMPT 1 - NEW CODE: Main Content Wrapper with Activity Feed -->
+        <!-- PROMPT 1 - NEW CODE: Main Content Wrapper -->
         <div class="content-wrapper">
             <!-- Content Area -->
-            <div class="content-area" id="contentArea">
+            <div class="content-area" id="contentArea" style="flex: 1; max-width: 100%;">
                 <!-- Dynamic content will be loaded here -->
             </div>
-
-            <!-- Activity Feed Panel (Right Side) -->
-            <aside class="activity-feed-panel" id="activityFeedPanel">
-                <div class="activity-feed-header">
-                    <h3>Activity Feed</h3>
-                    <span class="activity-feed-subtitle">Last 10 activities</span>
-                </div>
-                <div class="activity-feed-list" id="activityFeedList">
-                    <div class="activity-item">
-                        <div class="activity-time">Loading...</div>
-                        <div class="activity-content">Fetching recent activities...</div>
-                    </div>
-                </div>
-            </aside>
         </div>
         <!-- END PROMPT 1 - NEW CODE -->
     </main>
@@ -8158,8 +8144,8 @@ function getRelativeTime(date) {
     return date.toLocaleDateString();
 }
 
-// Auto-refresh activity feed every 5 seconds
-setInterval(updateActivityFeed, 5000);
+// Activity feed disabled
+// setInterval(updateActivityFeed, 5000);
 
 // ========== INTERACTIVE CARD DRILL-DOWN FUNCTIONS ==========
 window.showStudentsDetail = async function() {
@@ -8452,7 +8438,7 @@ window.showAttendanceDetail = async function() {
 function initNewUIFeatures() {
     initTheme();
     updateStickyBanner();
-    updateActivityFeed();
+    // updateActivityFeed(); // Disabled
     updatePendingTasksCount();
 }
 
