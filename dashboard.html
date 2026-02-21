@@ -187,6 +187,7 @@ const menuItems = {
         { id: 'attendanceanalytics', icon: '📈', label: 'Attendance Analytics' },
         { id: 'performanceanalytics', icon: '🎯', label: 'Performance Analytics' },
         { id: 'uploadexam', icon: '📋', label: 'Upload Exam' },
+        { id: 'removeexams', icon: '🗑️', label: 'Remove Exams' },
         { id: 'classes', icon: '👥', label: 'Classes' },
         { id: 'managetimetable', icon: '🗓️', label: 'Manage Timetable' },
         { id: 'uploadcca', icon: '🎨', label: 'Upload CCA' },
@@ -523,6 +524,15 @@ function renderTab(tabId) {
         case 'homework':
             renderHomework();
             break;
+        case 'homeworkmanagement':
+            renderHomeworkManagement();
+            break;
+        case 'teacherschedule':
+            renderTeacherSchedule();
+            break;
+        case 'marksapproval':
+            renderMarksApproval();
+            break;
         case 'examresults':
             renderExamResults();
             break;
@@ -541,6 +551,9 @@ function renderTab(tabId) {
             break;
         case 'uploadexam':
             renderUploadExam();
+            break;
+        case 'removeexams':
+            renderRemoveExams();
             break;
         case 'classes':
             renderClasses();
@@ -1408,7 +1421,17 @@ async function renderTimetable() {
             return;
         }
 
-        // Fetch timetable for the class
+        // Fetch timetable image from timetable_images table (uploaded by coordinator)
+        const { data: timetableImage } = await client
+            .from('timetable_images')
+            .select('*')
+            .eq('class', className)
+            .eq('is_active', true)
+            .order('uploaded_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        // Also fetch from timetables table for backward compatibility
         const { data: timetable } = await client
             .from('timetables')
             .select('*')
@@ -1422,7 +1445,20 @@ async function renderTimetable() {
                 <h3>🗓️ Class Timetable</h3>
                 <p style="margin-bottom: 20px; color: #666;">Class: ${className}</p>
 
-                ${timetable && timetable.periods ? `
+                ${timetableImage ? `
+                    <div style="text-align: center; margin-top: 20px;">
+                        <img src="${timetableImage.image_url}" alt="Timetable for ${className}"
+                             style="max-width: 100%; border: 2px solid #ddd; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <p style="margin-top: 10px; font-size: 13px; color: #999;">
+                            Uploaded by ${timetableImage.uploaded_by} on ${new Date(timetableImage.uploaded_at).toLocaleDateString()}
+                        </p>
+                    </div>
+                ` : timetable && timetable.image_data ? `
+                    <div style="text-align: center; margin-top: 20px;">
+                        <img src="${timetable.image_data}" alt="Timetable for ${className}"
+                             style="max-width: 100%; border: 2px solid #ddd; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    </div>
+                ` : timetable && timetable.periods ? `
                     <div style="overflow-x: auto;">
                         <table style="width: 100%; min-width: 600px;">
                             <thead>
@@ -1484,6 +1520,17 @@ window.showClassTimetable = async function(className) {
 
     const client = window.supabaseClient.getClient();
 
+    // Fetch from timetable_images first (coordinator uploads)
+    const { data: timetableImage } = await client
+        .from('timetable_images')
+        .select('*')
+        .eq('class', className)
+        .eq('is_active', true)
+        .order('uploaded_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    // Fallback to timetables table
     const { data: timetable } = await client
         .from('timetables')
         .select('*')
@@ -1493,7 +1540,15 @@ window.showClassTimetable = async function(className) {
     document.getElementById('timetableContent').innerHTML = `
         <div style="margin-top: 30px;">
             <h4>Timetable for ${className}</h4>
-            ${timetable && timetable.image_data ? `
+            ${timetableImage ? `
+                <div style="margin-top: 20px; text-align: center;">
+                    <img src="${timetableImage.image_url}" alt="Timetable for ${className}"
+                         style="max-width: 100%; border: 2px solid #ddd; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <p style="margin-top: 10px; font-size: 13px; color: #999;">
+                        Uploaded by ${timetableImage.uploaded_by} on ${new Date(timetableImage.uploaded_at).toLocaleDateString()}
+                    </p>
+                </div>
+            ` : timetable && timetable.image_data ? `
                 <div style="margin-top: 20px; text-align: center;">
                     <img src="${timetable.image_data}" alt="Timetable for ${className}"
                          style="max-width: 100%; border: 2px solid #ddd; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
@@ -2200,6 +2255,331 @@ async function renderHomework() {
         }
     });
 }
+
+async function renderHomeworkManagement() {
+    const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+    const currentUser = window.auth.getCurrentUser();
+
+    try {
+        showLoading();
+
+        // Get homework assigned by this teacher with submission stats
+        const { data: homeworkList } = await client
+            .from('homework')
+            .select('*')
+            .eq('assigned_by', currentUser.username)
+            .order('date', { ascending: false });
+
+        hideLoading();
+
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>📚 Homework Management</h3>
+                <p style="color: #666; margin-bottom: 20px;">View and manage all homework assignments.</p>
+
+                ${homeworkList && homeworkList.length > 0 ? `
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Class</th>
+                                    <th>Subject</th>
+                                    <th>Title</th>
+                                    <th>Description</th>
+                                    <th>Due Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${homeworkList.map(hw => `
+                                    <tr>
+                                        <td>${new Date(hw.date).toLocaleDateString()}</td>
+                                        <td><strong>${hw.class}</strong></td>
+                                        <td>${hw.subject}</td>
+                                        <td>${hw.title}</td>
+                                        <td style="max-width: 300px;">${hw.description || 'N/A'}</td>
+                                        <td>${hw.due_date ? new Date(hw.due_date).toLocaleDateString() : 'N/A'}</td>
+                                        <td>
+                                            <button class="btn-danger btn-sm" onclick="deleteHomework(${hw.id}, '${hw.title}')">
+                                                🗑️ Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                ` : `
+                    <p style="text-align: center; color: #999; padding: 40px;">No homework assigned yet. Use the "Homework" tab to assign new homework.</p>
+                `}
+            </div>
+        `;
+    } catch (error) {
+        hideLoading();
+        console.error('Error loading homework:', error);
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>📚 Homework Management</h3>
+                <p style="color: #e74c3c;">Error loading homework. Please try again.</p>
+            </div>
+        `;
+    }
+}
+
+window.deleteHomework = async function(homeworkId, title) {
+    showConfirm(
+        'Delete Homework',
+        `Are you sure you want to delete the homework "${title}"?`,
+        async function() {
+            try {
+                showLoading();
+                const client = window.supabaseClient.getClient();
+
+                const { error } = await client
+                    .from('homework')
+                    .delete()
+                    .eq('id', homeworkId);
+
+                if (error) throw error;
+
+                hideLoading();
+                showModal('Success', 'Homework deleted successfully!', 'success');
+                renderHomeworkManagement();
+            } catch (error) {
+                hideLoading();
+                showModal('Error', `Failed to delete homework: ${error.message}`, 'error');
+            }
+        }
+    );
+};
+
+async function renderTeacherSchedule() {
+    const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+    const currentUser = window.auth.getCurrentUser();
+
+    try {
+        showLoading();
+
+        // Get teacher's duties
+        const { data: duties } = await client
+            .from('duties')
+            .select('*')
+            .eq('assigned_to', currentUser.username)
+            .order('date', { ascending: false });
+
+        // Get teacher's classes (from timetables or class assignments)
+        const { data: teacherData } = await client
+            .from('teachers')
+            .select('subjects, classes')
+            .eq('id', currentUser.username)
+            .maybeSingle();
+
+        hideLoading();
+
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>👨‍🏫 Teacher Schedule</h3>
+                <p style="color: #666; margin-bottom: 20px;">Your teaching schedule and assigned duties.</p>
+
+                <div style="margin-bottom: 30px;">
+                    <h4>📚 Teaching Assignment</h4>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 10px;">
+                        <p><strong>Subjects:</strong> ${teacherData?.subjects || 'Not assigned'}</p>
+                        <p style="margin-top: 8px;"><strong>Classes:</strong> ${teacherData?.classes || 'Not assigned'}</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h4>📋 Assigned Duties</h4>
+                    ${duties && duties.length > 0 ? `
+                        <div style="overflow-x: auto; margin-top: 15px;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Duty Type</th>
+                                        <th>Description</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${duties.map(duty => `
+                                        <tr>
+                                            <td>${new Date(duty.date).toLocaleDateString()}</td>
+                                            <td><strong>${duty.duty_type || 'General'}</strong></td>
+                                            <td>${duty.description || 'N/A'}</td>
+                                            <td>
+                                                <span style="padding: 4px 12px; border-radius: 12px; font-size: 12px;
+                                                      background: ${duty.status === 'completed' ? '#d4edda' : '#fff3cd'};
+                                                      color: ${duty.status === 'completed' ? '#155724' : '#856404'};">
+                                                    ${duty.status || 'pending'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    ` : `
+                        <p style="text-align: center; color: #999; padding: 40px;">No duties assigned yet.</p>
+                    `}
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        hideLoading();
+        console.error('Error loading schedule:', error);
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>👨‍🏫 Teacher Schedule</h3>
+                <p style="color: #e74c3c;">Error loading schedule. Please try again.</p>
+            </div>
+        `;
+    }
+}
+
+async function renderMarksApproval() {
+    const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+    const currentUser = window.auth.getCurrentUser();
+
+    try {
+        showLoading();
+
+        // Get pending marks from marks_workflow table
+        const { data: pendingMarks } = await client
+            .from('marks_workflow')
+            .select('*')
+            .eq('status', 'pending')
+            .eq('approver_id', currentUser.username)
+            .order('submitted_at', { ascending: false });
+
+        hideLoading();
+
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>✅ Marks Approval</h3>
+                <p style="color: #666; margin-bottom: 20px;">Review and approve marks submitted by teachers.</p>
+
+                ${pendingMarks && pendingMarks.length > 0 ? `
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Submitted On</th>
+                                    <th>Submitted By</th>
+                                    <th>Exam</th>
+                                    <th>Subject</th>
+                                    <th>Class</th>
+                                    <th>Total Students</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${pendingMarks.map(marks => `
+                                    <tr>
+                                        <td>${new Date(marks.submitted_at).toLocaleDateString()}</td>
+                                        <td><strong>${marks.submitted_by}</strong></td>
+                                        <td>${marks.exam_name}</td>
+                                        <td>${marks.subject}</td>
+                                        <td>${marks.class}</td>
+                                        <td>${marks.total_students || 'N/A'}</td>
+                                        <td>
+                                            <button class="btn-success btn-sm" onclick="approveMarks(${marks.id}, '${marks.exam_name}')">
+                                                ✅ Approve
+                                            </button>
+                                            <button class="btn-danger btn-sm" onclick="rejectMarks(${marks.id}, '${marks.exam_name}')">
+                                                ❌ Reject
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                ` : `
+                    <div style="text-align: center; padding: 60px 20px;">
+                        <div style="font-size: 48px; margin-bottom: 15px;">✅</div>
+                        <h3 style="color: #999; margin-bottom: 10px;">All caught up!</h3>
+                        <p style="color: #666;">No marks pending approval at this time.</p>
+                    </div>
+                `}
+            </div>
+        `;
+    } catch (error) {
+        hideLoading();
+        console.error('Error loading marks approval:', error);
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>✅ Marks Approval</h3>
+                <p style="color: #e74c3c;">Error loading marks. Please try again.</p>
+            </div>
+        `;
+    }
+}
+
+window.approveMarks = async function(marksId, examName) {
+    showConfirm(
+        'Approve Marks',
+        `Are you sure you want to approve marks for "${examName}"? This will make them visible to students and parents.`,
+        async function() {
+            try {
+                showLoading();
+                const client = window.supabaseClient.getClient();
+
+                const { error } = await client
+                    .from('marks_workflow')
+                    .update({
+                        status: 'approved',
+                        approved_at: new Date().toISOString()
+                    })
+                    .eq('id', marksId);
+
+                if (error) throw error;
+
+                hideLoading();
+                showModal('Success', 'Marks approved successfully!', 'success');
+                renderMarksApproval();
+            } catch (error) {
+                hideLoading();
+                showModal('Error', `Failed to approve marks: ${error.message}`, 'error');
+            }
+        }
+    );
+};
+
+window.rejectMarks = async function(marksId, examName) {
+    showConfirm(
+        'Reject Marks',
+        `Are you sure you want to reject marks for "${examName}"? The submitter will be notified to resubmit.`,
+        async function() {
+            try {
+                showLoading();
+                const client = window.supabaseClient.getClient();
+
+                const { error } = await client
+                    .from('marks_workflow')
+                    .update({
+                        status: 'rejected',
+                        rejected_at: new Date().toISOString()
+                    })
+                    .eq('id', marksId);
+
+                if (error) throw error;
+
+                hideLoading();
+                showModal('Success', 'Marks rejected. Teacher will be notified.', 'success');
+                renderMarksApproval();
+            } catch (error) {
+                hideLoading();
+                showModal('Error', `Failed to reject marks: ${error.message}`, 'error');
+            }
+        }
+    );
+};
 
 async function renderExamResults() {
     const contentArea = document.getElementById('contentArea');
@@ -3280,6 +3660,111 @@ async function renderUploadCCA() {
         }
     });
 }
+
+async function renderRemoveExams() {
+    const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+
+    try {
+        showLoading();
+
+        // Get all exams
+        const { data: exams } = await client
+            .from('exams')
+            .select('*')
+            .order('date', { ascending: false });
+
+        hideLoading();
+
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>🗑️ Remove Exams</h3>
+                <p style="color: #666; margin-bottom: 20px;">Select exams to remove from the system. This will also delete associated exam results.</p>
+
+                ${exams && exams.length > 0 ? `
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Exam Name</th>
+                                    <th>Subject</th>
+                                    <th>Class</th>
+                                    <th>Date</th>
+                                    <th>Max Marks</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${exams.map(exam => `
+                                    <tr>
+                                        <td><strong>${exam.exam_name || 'N/A'}</strong></td>
+                                        <td>${exam.subject || 'N/A'}</td>
+                                        <td>${exam.class || 'N/A'}</td>
+                                        <td>${exam.date ? new Date(exam.date).toLocaleDateString() : 'N/A'}</td>
+                                        <td>${exam.max_marks || 'N/A'}</td>
+                                        <td>
+                                            <button class="btn-danger btn-sm"
+                                                    onclick="deleteExam(${exam.id}, '${exam.exam_name}', '${exam.subject}', '${exam.class}')">
+                                                🗑️ Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                ` : `
+                    <p style="text-align: center; color: #999; padding: 40px;">No exams found in the system.</p>
+                `}
+            </div>
+        `;
+    } catch (error) {
+        hideLoading();
+        console.error('Error loading exams:', error);
+        contentArea.innerHTML = `
+            <div class="card">
+                <h3>🗑️ Remove Exams</h3>
+                <p style="color: #e74c3c;">Error loading exams. Please try again.</p>
+            </div>
+        `;
+    }
+}
+
+window.deleteExam = async function(examId, examName, subject, className) {
+    showConfirm(
+        'Delete Exam',
+        `Are you sure you want to delete the exam "${examName}" (${subject} - ${className})? This will also delete all associated exam results and cannot be undone.`,
+        async function() {
+            try {
+                showLoading();
+                const client = window.supabaseClient.getClient();
+
+                // Delete exam results first (foreign key constraint)
+                const { error: resultsError } = await client
+                    .from('exam_results')
+                    .delete()
+                    .eq('exam_id', examId);
+
+                if (resultsError) throw resultsError;
+
+                // Delete the exam
+                const { error: examError } = await client
+                    .from('exams')
+                    .delete()
+                    .eq('id', examId);
+
+                if (examError) throw examError;
+
+                hideLoading();
+                showModal('Success', `Exam "${examName}" and all associated results have been deleted successfully!`, 'success');
+                renderRemoveExams(); // Refresh the list
+            } catch (error) {
+                hideLoading();
+                showModal('Error', `Failed to delete exam: ${error.message}`, 'error');
+            }
+        }
+    );
+};
 
 // Vice Principal tab functions
 
