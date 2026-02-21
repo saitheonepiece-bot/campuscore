@@ -238,6 +238,7 @@ CREATE TABLE IF NOT EXISTS classes (
     section TEXT NOT NULL,
     class_teacher_id TEXT,
     total_students INT DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
