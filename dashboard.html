@@ -3497,8 +3497,12 @@ async function renderClassManagement() {
                                     </td>
                                     <td>
                                         <button onclick="toggleClassStatus(${c.id}, ${c.is_active !== false})"
-                                            class="btn-secondary" style="padding: 5px 10px; font-size: 12px;">
+                                            class="btn-secondary" style="padding: 5px 10px; font-size: 12px; margin-right: 5px;">
                                             ${c.is_active !== false ? 'Deactivate' : 'Activate'}
+                                        </button>
+                                        <button onclick="deleteClass(${c.id}, '${c.name}')"
+                                            class="btn-danger" style="padding: 5px 10px; font-size: 12px; background: #d32f2f;">
+                                            Delete
                                         </button>
                                     </td>
                                 </tr>
@@ -3618,6 +3622,47 @@ window.toggleClassStatus = async function(classId, currentStatus) {
         hideLoading();
         showModal('Error', error.message || 'Failed to toggle class status', 'error');
     }
+};
+
+// Helper function to delete class (VP only)
+window.deleteClass = async function(classId, className) {
+    showConfirm(
+        'Delete Class',
+        `Are you sure you want to permanently delete class "${className}"? This action cannot be undone.`,
+        async function() {
+            try {
+                showLoading();
+                const client = window.supabaseClient.getClient();
+
+                // Check if there are students in this class
+                const { data: students } = await client
+                    .from('students')
+                    .select('id')
+                    .eq('class', className);
+
+                if (students && students.length > 0) {
+                    hideLoading();
+                    showModal('Error', `Cannot delete class "${className}" because it has ${students.length} student(s). Please reassign or remove students first.`, 'error');
+                    return;
+                }
+
+                // Delete the class
+                const { error } = await client
+                    .from('classes')
+                    .delete()
+                    .eq('id', classId);
+
+                if (error) throw error;
+
+                hideLoading();
+                showModal('Success', `Class "${className}" deleted successfully!`, 'success');
+                renderClassManagement(); // Refresh
+            } catch (error) {
+                hideLoading();
+                showModal('Error', error.message || 'Failed to delete class', 'error');
+            }
+        }
+    );
 };
 
 async function renderAssignDuties() {
@@ -6520,22 +6565,36 @@ async function renderManageParents() {
     try {
         showLoading();
 
-        // Fetch all parents with their student information
-        const { data: parents, error } = await client
+        // Fetch all parents
+        const { data: parents, error: parentsError } = await client
             .from('parents')
-            .select(`
-                id,
-                name,
-                phone,
-                student_id,
-                status,
-                students (
-                    id,
-                    name,
-                    class
-                )
-            `)
+            .select('*')
             .order('id', { ascending: true });
+
+        if (parentsError) {
+            console.error('Error fetching parents:', parentsError);
+            throw parentsError;
+        }
+
+        // Fetch all students
+        const { data: students, error: studentsError } = await client
+            .from('students')
+            .select('*');
+
+        if (studentsError) {
+            console.error('Error fetching students:', studentsError);
+        }
+
+        // Map students to parents
+        const parentsWithStudents = parents?.map(parent => {
+            const student = students?.find(s => s.id === parent.student_id);
+            return {
+                ...parent,
+                student: student || null
+            };
+        }) || [];
+
+        const error = parentsError;
 
         if (error) {
             console.error('Error fetching parents:', error);
@@ -6551,7 +6610,7 @@ async function renderManageParents() {
                     View, delete, or deactivate parent accounts. Deactivated parents cannot login but their data is preserved.
                 </p>
 
-                ${parents && parents.length > 0 ? `
+                ${parentsWithStudents && parentsWithStudents.length > 0 ? `
                     <div style="overflow-x: auto;">
                         <table style="width: 100%;">
                             <thead>
@@ -6567,8 +6626,8 @@ async function renderManageParents() {
                                 </tr>
                             </thead>
                             <tbody>
-                                ${parents.map(parent => {
-                                    const student = parent.students || {};
+                                ${parentsWithStudents.map(parent => {
+                                    const student = parent.student || {};
                                     const isActive = !parent.status || parent.status === 'active';
                                     const statusBadge = isActive
                                         ? '<span class="badge" style="background: #4CAF50;">Active</span>'
@@ -6579,7 +6638,7 @@ async function renderManageParents() {
                                             <td>${parent.id}</td>
                                             <td>${parent.name}</td>
                                             <td>${parent.phone || 'N/A'}</td>
-                                            <td>${parent.student_id}</td>
+                                            <td>${parent.student_id || 'N/A'}</td>
                                             <td>${student.name || 'N/A'}</td>
                                             <td>${student.class || 'N/A'}</td>
                                             <td>${statusBadge}</td>
@@ -6835,12 +6894,9 @@ async function renderRegister() {
 
             <div style="margin-bottom: 20px;">
                 <label>Select User Type:</label><br>
-                <button class="btn-filter active" onclick="showRegisterForm('student')" id="reg-student">Student</button>
-                <button class="btn-filter" onclick="showRegisterForm('parent')" id="reg-parent">Parent</button>
+                <button class="btn-filter active" onclick="showRegisterForm('student')" id="reg-student">Student & Parent</button>
                 <button class="btn-filter" onclick="showRegisterForm('teacher')" id="reg-teacher">Teacher</button>
                 <button class="btn-filter" onclick="showRegisterForm('coordinator')" id="reg-coordinator">Coordinator</button>
-                <button class="btn-filter" onclick="showRegisterForm('vpjunior')" id="reg-vpjunior">VP Junior (6-8)</button>
-                <button class="btn-filter" onclick="showRegisterForm('vpsenior')" id="reg-vpsenior">VP Senior (9-10)</button>
             </div>
 
             <div id="registerFormContainer"></div>
@@ -7027,6 +7083,16 @@ window.showRegisterForm = function(userType) {
             }
         });
     } else if (userType === 'parent') {
+        // Parent registration removed - use Student & Parent registration instead
+        container.innerHTML = `
+            <div style="padding: 40px; text-align: center; background: #f8f9fa; border-radius: 10px;">
+                <h4 style="color: #666;">Parent Registration</h4>
+                <p style="color: #999; margin-top: 10px;">Parents are automatically registered when you register a student.</p>
+                <p style="color: #999;">Please use the "Student & Parent" registration option.</p>
+            </div>
+        `;
+        return;
+    } else if (userType === 'oldparent') {
         container.innerHTML = `
             <form id="registerForm" style="max-width: 600px;">
                 <h4>Register Parent</h4>
@@ -7453,120 +7519,6 @@ window.showRegisterForm = function(userType) {
 
                 hideLoading();
                 showModal('Success', `Coordinator registered successfully!\n\nCoordinator: ${coordinatorName}\nID: ${coordinatorId}\n${department ? `Department: ${department}\n` : ''}Username: ${coordinatorId}\nPassword: ${password}\n\nYou can now login with these credentials.`, 'success');
-                document.getElementById('registerForm').reset();
-            } catch (error) {
-                console.error('Registration failed:', error);
-                hideLoading();
-                showModal('Error', `Registration failed: ${error.message}`, 'error');
-            }
-        });
-    } else if (userType === 'vpjunior' || userType === 'vpsenior') {
-        const vpLabel = userType === 'vpjunior' ? 'VP Junior (Grades 6-8)' : 'VP Senior (Grades 9-10)';
-        const vpGrades = userType === 'vpjunior' ? '6, 7, 8' : '9, 10';
-
-        container.innerHTML = `
-            <form id="registerForm" style="max-width: 600px;">
-                <h4>Register ${vpLabel}</h4>
-                <p style="background: #e3f2fd; padding: 12px; border-radius: 5px; font-size: 14px; color: #1976d2;">
-                    ℹ️ This VP will handle issues for grades: <strong>${vpGrades}</strong>
-                </p>
-                <div class="form-group">
-                    <label>VP ID</label>
-                    <input type="text" id="vpId" placeholder="e.g., VP001" required>
-                </div>
-                <div class="form-group">
-                    <label>VP Name</label>
-                    <input type="text" id="vpName" required>
-                </div>
-                <div class="form-group">
-                    <label>School/Branch</label>
-                    <input type="text" id="vpSchool" placeholder="e.g., DPS Nadergul">
-                </div>
-                <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" id="password" required>
-                </div>
-                <button type="submit" class="btn-primary">Register ${vpLabel}</button>
-            </form>
-        `;
-
-        document.getElementById('registerForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const vpId = document.getElementById('vpId').value.trim();
-            const vpName = document.getElementById('vpName').value.trim();
-            const vpSchool = document.getElementById('vpSchool').value.trim();
-            const password = document.getElementById('password').value;
-
-            // Validation
-            if (!vpId || !vpName || !password) {
-                showModal('Error', 'Please fill in all required fields.', 'error');
-                return;
-            }
-
-            try {
-                showLoading();
-                const client = window.supabaseClient.getClient();
-
-                console.log('Starting VP registration for:', vpId);
-
-                // Check if username already exists
-                const { data: existingUser, error: userCheckError } = await client
-                    .from('users')
-                    .select('username')
-                    .eq('username', vpId)
-                    .maybeSingle();
-
-                if (userCheckError) {
-                    console.error('Error checking username:', userCheckError);
-                    throw new Error(`Error checking username: ${userCheckError.message}`);
-                }
-
-                if (existingUser) {
-                    hideLoading();
-                    showModal('Error', `Username ${vpId} already exists. Please use a different VP ID.`, 'error');
-                    return;
-                }
-
-                // Insert VP record into vice_principals table
-                console.log('Inserting VP record...');
-                const { data: vpData, error: vpError } = await client
-                    .from('vice_principals')
-                    .insert([{
-                        id: vpId,
-                        name: vpName,
-                        school: vpSchool || null
-                    }])
-                    .select();
-
-                if (vpError) {
-                    console.error('Error inserting VP:', vpError);
-                    throw new Error(`Failed to create VP record: ${vpError.message}`);
-                }
-                console.log('VP record created:', vpData);
-
-                // Create user account
-                console.log('Creating user account...');
-                const { data: userData, error: userError } = await client
-                    .from('users')
-                    .insert([{
-                        username: vpId,
-                        password: password,
-                        name: vpName,
-                        role: userType
-                    }])
-                    .select();
-
-                if (userError) {
-                    console.error('Error creating user account:', userError);
-                    // Try to rollback VP creation
-                    await client.from('vice_principals').delete().eq('id', vpId);
-                    throw new Error(`Failed to create user account: ${userError.message}`);
-                }
-                console.log('User account created:', userData);
-
-                hideLoading();
-                showModal('Success', `${vpLabel} registered successfully!\n\nVP Name: ${vpName}\nID: ${vpId}\n${vpSchool ? `School: ${vpSchool}\n` : ''}Username: ${vpId}\nPassword: ${password}\nGrades: ${vpGrades}\n\nYou can now login with these credentials.`, 'success');
                 document.getElementById('registerForm').reset();
             } catch (error) {
                 console.error('Registration failed:', error);
@@ -9679,11 +9631,11 @@ function getNextClass(currentClass) {
     return `${grade + 1}${section}`;
 }
 
-// Promote All Students
+// Promote All Students - Updates entire website with new class data
 window.promoteAllStudents = async function() {
     showConfirm(
         'Confirm Promotion',
-        'This will promote ALL active students to the next grade.\n\nFor example:\n• 6A → 7A\n• 9B → 10B\n• 11C → 12C\n\nAre you sure you want to proceed?',
+        'This will promote ALL active students to the next grade and update the entire website.\n\nChanges:\n• Students: 6A → 7A, 9B → 10B, etc.\n• Attendance records will be preserved\n• Exam results will be preserved\n• Homework assignments will be preserved\n• Class members will be updated\n• All related data will be migrated\n\nAre you sure you want to proceed?',
         async function() {
             try {
                 showLoading();
@@ -9699,11 +9651,20 @@ window.promoteAllStudents = async function() {
 
                 let promoted = 0;
                 let errors = [];
+                let updates = {
+                    students: 0,
+                    attendance: 0,
+                    exam_results: 0,
+                    homework: 0,
+                    class_members: 0
+                };
 
-                // Promote each student
+                // Promote each student and update all related records
                 for (const student of students) {
-                    const nextClass = getNextClass(student.class);
+                    const oldClass = student.class;
+                    const nextClass = getNextClass(oldClass);
 
+                    // Update student record
                     const { error: updateError } = await client
                         .from('students')
                         .update({ class: nextClass })
@@ -9711,18 +9672,89 @@ window.promoteAllStudents = async function() {
 
                     if (updateError) {
                         errors.push(`Student ${student.id}: ${updateError.message}`);
+                        continue;
                     } else {
                         promoted++;
+                        updates.students++;
+                    }
+
+                    // Update attendance records (update class field if exists)
+                    const { error: attendanceError, count: attendanceCount } = await client
+                        .from('attendance')
+                        .update({ class: nextClass })
+                        .eq('student_id', student.id);
+
+                    if (!attendanceError && attendanceCount > 0) {
+                        updates.attendance += attendanceCount;
+                    }
+
+                    // Update exam results (update class field if exists)
+                    const { error: examError, count: examCount } = await client
+                        .from('exam_results')
+                        .update({ class: nextClass })
+                        .eq('student_id', student.id);
+
+                    if (!examError && examCount > 0) {
+                        updates.exam_results += examCount;
+                    }
+
+                    // Update homework submissions (update class field if exists)
+                    const { error: homeworkError, count: homeworkCount } = await client
+                        .from('homework_submissions')
+                        .update({ class: nextClass })
+                        .eq('student_id', student.id);
+
+                    if (!homeworkError && homeworkCount > 0) {
+                        updates.homework += homeworkCount;
+                    }
+
+                    // Update class_members table if it exists
+                    const { error: membersError, count: membersCount } = await client
+                        .from('class_members')
+                        .update({ class_name: nextClass })
+                        .eq('student_id', student.id);
+
+                    if (!membersError && membersCount > 0) {
+                        updates.class_members += membersCount;
+                    }
+                }
+
+                // Update class totals based on actual student counts
+                const { data: classes } = await client
+                    .from('classes')
+                    .select('name');
+
+                if (classes) {
+                    for (const cls of classes) {
+                        const { count } = await client
+                            .from('students')
+                            .select('*', { count: 'exact', head: true })
+                            .eq('class', cls.name)
+                            .eq('status', 'active');
+
+                        await client
+                            .from('classes')
+                            .update({ total_students: count || 0 })
+                            .eq('name', cls.name);
                     }
                 }
 
                 hideLoading();
 
                 if (errors.length === 0) {
-                    showModal('Success', `Successfully promoted ${promoted} students to the next grade!`, 'success');
+                    const message = `🎉 Successfully promoted ${promoted} students to the next grade!\n\n` +
+                                  `📊 Website Updates:\n` +
+                                  `• Students: ${updates.students} updated\n` +
+                                  `• Attendance: ${updates.attendance} records updated\n` +
+                                  `• Exam Results: ${updates.exam_results} records updated\n` +
+                                  `• Homework: ${updates.homework} submissions updated\n` +
+                                  `• Class Members: ${updates.class_members} records updated\n\n` +
+                                  `✅ All data has been migrated successfully!`;
+
+                    showModal('Promotion Complete', message, 'success');
                     checkPromotionStatus(); // Refresh status
                 } else {
-                    showModal('Partial Success', `Promoted ${promoted} students.\n\nErrors: ${errors.length}\n\n${errors.slice(0, 5).join('\n')}`, 'warning');
+                    showModal('Partial Success', `Promoted ${promoted} students with ${errors.length} errors.\n\n${errors.slice(0, 5).join('\n')}`, 'warning');
                 }
             } catch (error) {
                 hideLoading();
