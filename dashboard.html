@@ -6828,7 +6828,7 @@ async function renderHolidays() {
                                 <td>${h.reason}</td>
                                 <td>${dayName}</td>
                                 <td>
-                                    <button class="btn-danger" onclick="deleteHoliday('${h.date}')">Delete</button>
+                                    <button class="btn-danger btn-sm" onclick="deleteHoliday('${h.date}', '${h.reason}')">Delete</button>
                                 </td>
                             </tr>
                         `;
@@ -6862,25 +6862,31 @@ async function renderHolidays() {
     });
 }
 
-window.deleteHoliday = async function(date) {
-    showModal('Confirm', 'Delete this holiday?', 'warning', true, async function() {
-        try {
-            showLoading();
-            const { error } = await window.supabaseClient.getClient()
-                .from('holidays')
-                .delete()
-                .eq('date', date);
+window.deleteHoliday = async function(date, name) {
+    showConfirm(
+        'Delete Holiday',
+        `Are you sure you want to delete the holiday "${name}" on ${date}?`,
+        async function() {
+            try {
+                showLoading();
+                const client = window.supabaseClient.getClient();
 
-            if (error) throw error;
+                const { error } = await client
+                    .from('holidays')
+                    .delete()
+                    .eq('date', date);
 
-            hideLoading();
-            showModal('Success', 'Holiday deleted', 'success');
-            renderHolidays();
-        } catch (error) {
-            hideLoading();
-            showModal('Error', error.message, 'error');
+                if (error) throw error;
+
+                hideLoading();
+                showModal('Success', `Holiday "${name}" deleted successfully!`, 'success');
+                renderHolidays();
+            } catch (error) {
+                hideLoading();
+                showModal('Error', `Failed to delete holiday: ${error.message}`, 'error');
+            }
         }
-    });
+    );
 };
 
 async function renderRegister() {

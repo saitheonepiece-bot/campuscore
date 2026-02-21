@@ -1955,3 +1955,75 @@ table tbody tr:last-child td {
         font-size: 13px;
     }
 }
+
+/* ========== COLLAPSIBLE SIDEBAR SECTIONS ========== */
+.menu-section {
+    list-style: none;
+    margin-bottom: 8px;
+}
+
+.menu-section-header {
+    width: 100%;
+    background: transparent;
+    border: none;
+    padding: 12px 15px;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 12px;
+    color: #999;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+    border-radius: 8px;
+}
+
+.menu-section-header:hover {
+    background: rgba(92, 168, 112, 0.1);
+    color: var(--color-primary);
+}
+
+.section-arrow {
+    font-size: 10px;
+    transition: transform 0.3s ease;
+    display: inline-block;
+}
+
+.section-arrow.collapsed {
+    transform: rotate(-90deg);
+}
+
+.section-title {
+    text-transform: uppercase;
+}
+
+.menu-section-items {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 2000px;
+    overflow: hidden;
+    transition: max-height 0.4s ease, opacity 0.3s ease;
+    opacity: 1;
+}
+
+.menu-section-items.collapsed {
+    max-height: 0 !important;
+    opacity: 0;
+}
+
+.menu-section-items .menu-item {
+    list-style: none;
+}
+
+/* Dark mode for menu sections */
+[data-theme="dark"] .menu-section-header {
+    color: #a0a0a0;
+}
+
+[data-theme="dark"] .menu-section-header:hover {
+    background: rgba(92, 168, 112, 0.2);
+    color: var(--color-secondary);
+}
