@@ -1185,35 +1185,64 @@ async function renderViewReportCards() {
     const client = window.supabaseClient.getClient();
 
     try {
-        // Get parent's student
-        const { data: parent } = await client
-            .from('parents')
-            .select('student_id')
-            .eq('id', currentUser.username)
-            .maybeSingle();
+        let studentId = null;
+        let student = null;
 
-        if (!parent) {
-            contentArea.innerHTML = `
-                <div class="card">
-                    <h3>📄 Report Cards</h3>
-                    <p style="color: #e74c3c;">Parent information not found.</p>
-                </div>
-            `;
-            return;
+        // Check if user is a student (direct access)
+        if (currentUser.role === 'student') {
+            // Student viewing their own report cards
+            const { data: studentData } = await client
+                .from('students')
+                .select('id, name, class')
+                .eq('id', currentUser.username)
+                .maybeSingle();
+
+            if (!studentData) {
+                contentArea.innerHTML = `
+                    <div class="card">
+                        <h3>📄 Report Cards</h3>
+                        <p style="color: #e74c3c;">Student information not found.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            studentId = studentData.id;
+            student = studentData;
+        } else {
+            // Parent viewing student's report cards
+            const { data: parent } = await client
+                .from('parents')
+                .select('student_id')
+                .eq('id', currentUser.username)
+                .maybeSingle();
+
+            if (!parent) {
+                contentArea.innerHTML = `
+                    <div class="card">
+                        <h3>📄 Report Cards</h3>
+                        <p style="color: #e74c3c;">Parent information not found.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Get student info
+            const { data: studentData } = await client
+                .from('students')
+                .select('id, name, class')
+                .eq('id', parent.student_id)
+                .maybeSingle();
+
+            studentId = parent.student_id;
+            student = studentData;
         }
-
-        // Get student info
-        const { data: student } = await client
-            .from('students')
-            .select('name, class')
-            .eq('id', parent.student_id)
-            .maybeSingle();
 
         // Get report cards for student
         const { data: reportCards } = await client
             .from('report_cards')
             .select('*')
-            .eq('student_id', parent.student_id)
+            .eq('student_id', studentId)
             .order('created_at', { ascending: false });
 
         contentArea.innerHTML = `
@@ -10511,9 +10540,20 @@ function validateParsedData() {
             errors.push('Class is required');
         }
 
-        // Date of Birth validation
-        if (row['Date of Birth'] && !/^\d{4}-\d{2}-\d{2}$/.test(row['Date of Birth'])) {
-            errors.push('Date format must be YYYY-MM-DD');
+        // Date of Birth validation - Support both DD-MM-YYYY and YYYY-MM-DD
+        if (row['Date of Birth']) {
+            const dob = row['Date of Birth'].trim();
+
+            // Check if it's DD-MM-YYYY format
+            if (/^\d{2}-\d{2}-\d{4}$/.test(dob)) {
+                // Convert DD-MM-YYYY to YYYY-MM-DD
+                const parts = dob.split('-');
+                row['Date of Birth'] = `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+            // Check if it's YYYY-MM-DD format
+            else if (!/^\d{4}-\d{2}-\d{2}$/.test(dob)) {
+                errors.push('Date format must be DD-MM-YYYY or YYYY-MM-DD');
+            }
         }
 
         // Age check
