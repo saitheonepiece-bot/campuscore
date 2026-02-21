@@ -3097,6 +3097,7 @@ async function uploadTimetableImage(className, existingTimetable) {
         const reader = new FileReader();
         reader.onload = async function(event) {
             const base64Image = event.target.result;
+            const currentUser = window.auth.getCurrentUser();
 
             if (existingTimetable) {
                 // Update existing timetable
@@ -3119,8 +3120,26 @@ async function uploadTimetableImage(className, existingTimetable) {
                 if (error) throw error;
             }
 
+            // Also save to timetable_images table for students
+            // Deactivate old timetable images for this class
+            await client
+                .from('timetable_images')
+                .update({ is_active: false })
+                .eq('class', className)
+                .eq('is_active', true);
+
+            // Insert new timetable image
+            await client
+                .from('timetable_images')
+                .insert([{
+                    class: className,
+                    image_url: base64Image,
+                    uploaded_by: currentUser.username,
+                    is_active: true
+                }]);
+
             hideLoading();
-            showModal('Success', 'Timetable image uploaded successfully!', 'success');
+            showModal('Success', 'Timetable image uploaded successfully! Visible to all students.', 'success');
             loadTimetableForClass(); // Reload to show new image
         };
 
@@ -3142,8 +3161,11 @@ async function renderUploadCCA() {
 
     // Get existing CCA calendar image
     const { data: ccaData } = await client
-        .from('cca_calendars')
+        .from('cca_calendar')
         .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
     contentArea.innerHTML = `
@@ -3151,12 +3173,15 @@ async function renderUploadCCA() {
             <h3>🎨 Upload CCA Calendar</h3>
             <p style="color: #666; margin-bottom: 20px;">Upload an image of the CCA (Co-Curricular Activities) calendar for students and parents to view.</p>
 
-            ${ccaData && ccaData.image_data ? `
+            ${ccaData && (ccaData.file_url || ccaData.image_data) ? `
                 <div style="margin-bottom: 30px;">
                     <h4>Current CCA Calendar:</h4>
-                    <img src="${ccaData.image_data}" alt="CCA Calendar"
+                    <img src="${ccaData.file_url || ccaData.image_data}" alt="CCA Calendar"
                          style="max-width: 100%; border: 2px solid #ddd; border-radius: 12px; margin-top: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                    <p style="color: #888; font-size: 14px; margin-top: 10px;">Uploaded by: ${ccaData.created_by || 'N/A'}</p>
+                    <p style="color: #888; font-size: 14px; margin-top: 10px;">
+                        Uploaded by: ${ccaData.uploaded_by || ccaData.created_by || 'N/A'}
+                        ${ccaData.created_at ? `on ${new Date(ccaData.created_at).toLocaleDateString()}` : ''}
+                    </p>
                 </div>
             ` : '<p style="margin-bottom: 20px; padding: 20px; background: #f9f9f9; border-radius: 8px; color: #888;">📋 No CCA calendar uploaded yet.</p>'}
 
@@ -3224,32 +3249,28 @@ async function renderUploadCCA() {
             reader.onload = async function(event) {
                 const base64Image = event.target.result;
 
-                if (ccaData) {
-                    // Update existing CCA calendar
-                    const { error } = await client
-                        .from('cca_calendars')
-                        .update({
-                            image_data: base64Image,
-                            created_by: currentUser.username,
-                            updated_at: new Date().toISOString()
-                        })
-                        .eq('id', ccaData.id);
+                // Deactivate old calendars first
+                await client
+                    .from('cca_calendar')
+                    .update({ is_active: false })
+                    .eq('is_active', true);
 
-                    if (error) throw error;
-                } else {
-                    // Create new CCA calendar
-                    const { error } = await client
-                        .from('cca_calendars')
-                        .insert([{
-                            image_data: base64Image,
-                            created_by: currentUser.username
-                        }]);
+                // Create new CCA calendar entry
+                const { error } = await client
+                    .from('cca_calendar')
+                    .insert([{
+                        title: 'CCA Calendar',
+                        description: 'Co-Curricular Activities Calendar',
+                        event_date: new Date().toISOString().split('T')[0],
+                        file_url: base64Image, // Using base64 for simplicity
+                        uploaded_by: currentUser.username,
+                        is_active: true
+                    }]);
 
-                    if (error) throw error;
-                }
+                if (error) throw error;
 
                 hideLoading();
-                showModal('Success', 'CCA calendar uploaded successfully!', 'success');
+                showModal('Success', 'CCA calendar uploaded successfully! Visible to all students and parents.', 'success');
                 renderUploadCCA(); // Refresh
             };
             reader.readAsDataURL(file);
