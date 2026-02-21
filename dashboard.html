@@ -8933,7 +8933,7 @@ async function performGlobalSearch(query) {
         if (students) {
             results.students = students.filter(s =>
                 s.name?.toLowerCase().includes(lowerQuery) ||
-                s.id?.toLowerCase().includes(lowerQuery) ||
+                s.id?.toString().toLowerCase().includes(lowerQuery) ||
                 s.class?.toLowerCase().includes(lowerQuery)
             ).slice(0, 5);
         }
