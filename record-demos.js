@@ -30,7 +30,7 @@ const users = [
     {
         role: 'VP',
         username: 'VP001',
-        password: 'vp123',
+        password: 'VP123',
         tabs: ['home', 'registration', 'classstructure']
     }
 ];
