@@ -1,0 +1,175 @@
+========== EMAIL FIELD ADDITIONS TO REGISTRATION FORMS ==========
+
+INSTRUCTIONS: Add email fields to the existing registration forms in renderRegister() function
+
+1. TEACHER REGISTRATION (Line ~8729):
+
+   The email field already exists at line 8754-8756:
+   ```
+   <div class="form-group">
+       <label>Email</label>
+       <input type="email" id="email" placeholder="teacher@school.com">
+   </div>
+   ```
+
+   At line ~8850, the user account creation needs to include email:
+   FIND (around line 8848-8856):
+   ```
+   const { data: userData, error: userError } = await client
+       .from('users')
+       .insert([{
+           username: teacherId,
+           password: password,
+           name: teacherName,
+           role: 'teacher'
+       }])
+       .select();
+   ```
+
+   REPLACE WITH:
+   ```
+   const { data: userData, error: userError } = await client
+       .from('users')
+       .insert([{
+           username: teacherId,
+           password: password,
+           name: teacherName,
+           role: 'teacher',
+           email: email || null
+       }])
+       .select();
+   ```
+
+2. COORDINATOR REGISTRATION (Line ~8875):
+
+   ADD email field to the form (after department field, around line 8890):
+   ```
+   <div class="form-group">
+       <label>Email</label>
+       <input type="email" id="email" placeholder="coordinator@school.com">
+   </div>
+   ```
+
+   READ the email value (around line 8905):
+   Add this line after reading password:
+   ```
+   const email = document.getElementById('email').value.trim();
+   ```
+
+   UPDATE user account creation (around line 8975-8982):
+   ```
+   const { data: userData, error: userError } = await client
+       .from('users')
+       .insert([{
+           username: coordinatorId,
+           password: password,
+           name: coordinatorName,
+           role: 'coordinator',
+           email: email || null
+       }])
+       .select();
+   ```
+
+3. CLASS TEACHER REGISTRATION (Line ~9001):
+
+   Email field already exists at line 9040-9042:
+   ```
+   <div class="form-group">
+       <label>Email</label>
+       <input type="email" id="email" placeholder="classteacher@school.com">
+   </div>
+   ```
+
+   UPDATE user account creation (around line 9132-9139):
+   FIND:
+   ```
+   const { data: userData, error: userError } = await client
+       .from('users')
+       .insert([{
+           username: classTeacherId,
+           password: password,
+           role: 'classteacher'
+       }])
+       .select();
+   ```
+
+   REPLACE WITH:
+   ```
+   const { data: userData, error: userError } = await client
+       .from('users')
+       .insert([{
+           username: classTeacherId,
+           password: password,
+           name: classTeacherName,
+           role: 'classteacher',
+           email: email || null
+       }])
+       .select();
+   ```
+
+4. STUDENT/PARENT REGISTRATION (Line ~8388):
+
+   ADD email field for parent (after parentPhone field, around line 8414):
+   ```
+   <div class="form-group">
+       <label>Parent Email</label>
+       <input type="email" id="parentEmail" placeholder="parent@email.com">
+   </div>
+   ```
+
+   READ the email value (around line 8426):
+   Add this line after parentPhone:
+   ```
+   const parentEmail = document.getElementById('parentEmail').value.trim();
+   ```
+
+   UPDATE user account creation for parent (around line 8532-8540):
+   FIND:
+   ```
+   const { data: userData, error: userError } = await client
+       .from('users')
+       .insert([{
+           username: parentId,
+           password: defaultPassword,
+           name: parentName,
+           role: 'parent'
+       }])
+       .select();
+   ```
+
+   REPLACE WITH:
+   ```
+   const { data: userData, error: userError } = await client
+       .from('users')
+       .insert([{
+           username: parentId,
+           password: defaultPassword,
+           name: parentName,
+           role: 'parent',
+           email: parentEmail || null
+       }])
+       .select();
+   ```
+
+========== DATABASE COLUMN CHECK ==========
+
+Make sure the 'users' table has an 'email' column:
+- Type: text or varchar
+- Nullable: true (allow NULL)
+- Default: NULL
+
+If the column doesn't exist, you need to add it to the Supabase database:
+
+SQL Command:
+```
+ALTER TABLE users ADD COLUMN email TEXT;
+```
+
+Also make sure to add PIN columns if they don't exist:
+```
+ALTER TABLE users ADD COLUMN pin_open TEXT DEFAULT 'VP321';
+ALTER TABLE users ADD COLUMN pin_shuffle TEXT DEFAULT 'VP123';
+ALTER TABLE users ADD COLUMN pin_export TEXT DEFAULT 'VP000';
+```
+
+========== END EMAIL FIELD REGISTRATION ==========

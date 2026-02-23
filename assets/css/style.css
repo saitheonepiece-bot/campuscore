@@ -540,6 +540,82 @@ table select,
     background: #ffffff;
 }
 
+/* Universal Search Bar */
+.universal-search-bar {
+    position: relative;
+    z-index: 1000;
+    background: #ffffff;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 15px 30px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.search-container {
+    max-width: 900px;
+    margin: 0 auto;
+    position: relative;
+}
+
+.search-icon {
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    color: #999;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.universal-search-bar .search-input {
+    width: 100%;
+    padding: 14px 18px 14px 52px;
+    border: 2px solid #e0e0e0;
+    border-radius: 30px;
+    font-size: 15px;
+    outline: none;
+    transition: all 0.3s ease;
+    background: #ffffff;
+    color: #333;
+    font-family: inherit;
+}
+
+.universal-search-bar .search-input::placeholder {
+    color: #999;
+}
+
+.universal-search-bar .search-input:focus {
+    border-color: #5ca870;
+    box-shadow: 0 0 0 4px rgba(92, 168, 112, 0.1);
+    background: #fafafa;
+}
+
+.search-results-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    right: 0;
+    margin-top: 8px;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    max-height: 450px;
+    overflow-y: auto;
+    z-index: 1001;
+}
+
+.search-results-dropdown.hidden {
+    display: none;
+}
+
+.search-empty {
+    padding: 30px;
+    text-align: center;
+    color: #999;
+    font-size: 14px;
+}
+
 /* Sticky Top Banner */
 .sticky-top-banner {
     position: sticky;
@@ -981,55 +1057,27 @@ table select,
 }
 
 .header-banner {
-    background: linear-gradient(135deg, #5ca870 0%, #4d9160 50%, #7ec490 100%);
+    background: linear-gradient(135deg, #5ca870 0%, #4d9160 100%);
     color: white;
-    padding: 50px 40px;
+    padding: 35px 30px;
     text-align: center;
-    position: relative;
-    overflow: hidden;
-    border-bottom: 6px solid #7ec490;
-    box-shadow: 0 8px 32px rgba(92, 168, 112, 0.25);
-}
-
-.header-banner::before {
-    content: '📚 ✏️ 🎓 📖 ✒️';
-    position: absolute;
-    font-size: 70px;
-    opacity: 0.08;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    letter-spacing: 50px;
-    white-space: nowrap;
-    animation: float 8s ease-in-out infinite;
-}
-
-@keyframes float {
-    0%, 100% {
-        transform: translate(-50%, -50%);
-    }
-    50% {
-        transform: translate(-50%, -54%);
-    }
+    box-shadow: 0 4px 12px rgba(92, 168, 112, 0.2);
+    border-bottom: 3px solid rgba(255, 255, 255, 0.2);
 }
 
 .header-banner h1 {
-    font-size: 38px;
-    margin-bottom: 14px;
-    font-weight: 900;
-    letter-spacing: 2px;
-    text-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-    position: relative;
-    z-index: 1;
+    font-size: 34px;
+    margin: 0 0 10px 0;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
 }
 
 .header-banner p {
-    font-size: 18px;
+    font-size: 16px;
+    margin: 0;
     opacity: 0.95;
     font-style: italic;
-    position: relative;
-    z-index: 1;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     font-weight: 300;
 }
 
@@ -1974,15 +2022,15 @@ table tbody tr:last-child td {
     gap: 10px;
     font-weight: 600;
     font-size: 12px;
-    color: #999;
+    color: rgba(255, 255, 255, 0.9);
     letter-spacing: 0.5px;
     transition: all 0.2s;
     border-radius: 8px;
 }
 
 .menu-section-header:hover {
-    background: rgba(92, 168, 112, 0.1);
-    color: var(--color-primary);
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
 }
 
 .section-arrow {

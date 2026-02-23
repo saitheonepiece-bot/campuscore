@@ -47,12 +47,6 @@
 
     <!-- Main Content -->
     <main class="main-content">
-        <!-- Header Banner -->
-        <div class="header-banner">
-            <h1>Delhi Public School, Nadergul</h1>
-            <p>Excellence in Education</p>
-        </div>
-
         <!-- PROMPT 1 - NEW CODE: Sticky Top Banner -->
         <div class="sticky-top-banner" id="stickyBanner">
             <div class="banner-left">
@@ -86,6 +80,11 @@
                     </div>
                 </div>
                 <!-- END PROMPT 3 - NEW CODE -->
+                <!-- PROMPT 2 - NEW CODE: Global Search Button -->
+                <button class="search-toggle-btn" id="searchToggle" aria-label="Global search" title="Search everything">
+                    🔍
+                </button>
+                <!-- END PROMPT 2 - NEW CODE -->
                 <button class="theme-toggle-btn" id="themeToggle" aria-label="Toggle dark mode" title="Toggle dark/light mode">
                     <span class="theme-icon">☀️</span>
                 </button>
@@ -93,15 +92,10 @@
         </div>
         <!-- END PROMPT 1 - NEW CODE -->
 
-        <!-- Universal Search Bar - Always Visible -->
-        <div class="universal-search-bar">
-            <div class="search-container">
-                <span class="search-icon">🔍</span>
-                <input type="text" id="searchInput" class="search-input" placeholder="Search students, teachers, attendance, marks, homework..." autocomplete="off">
-                <div class="search-results-dropdown hidden" id="searchResults">
-                    <div class="search-empty">Type to search across all data...</div>
-                </div>
-            </div>
+        <!-- Header Banner -->
+        <div class="header-banner">
+            <h1>Delhi Public School, Nadergul</h1>
+            <p>Excellence in Education</p>
         </div>
 
         <!-- PROMPT 1 - NEW CODE: Main Content Wrapper -->
@@ -118,6 +112,20 @@
 <!-- PROMPT 1 - NEW CODE: Sidebar Backdrop for Mobile -->
 <div class="sidebar-backdrop hidden" id="sidebarBackdrop"></div>
 <!-- END PROMPT 1 - NEW CODE -->
+
+<!-- PROMPT 2 - NEW CODE: Global Search Overlay -->
+<div class="search-overlay hidden" id="searchOverlay">
+    <div class="search-panel">
+        <div class="search-header">
+            <input type="text" id="searchInput" class="search-input" placeholder="Search students, teachers, attendance, marks..." autocomplete="off">
+            <button class="search-close-btn" id="searchCloseBtn" aria-label="Close search">✕</button>
+        </div>
+        <div class="search-results" id="searchResults">
+            <div class="search-empty">Type to search across all data...</div>
+        </div>
+    </div>
+</div>
+<!-- END PROMPT 2 - NEW CODE -->
 
 <!-- Loading Overlay -->
 <div class="loading-overlay hidden" id="loadingOverlay">
@@ -143,17 +151,6 @@ let initialized = false;
 
 // Menu items by role
 const menuItems = {
-    student: [
-        { id: 'home', icon: '🏠', label: 'Dashboard' },
-        { id: 'attendance', icon: '📊', label: 'Attendance' },
-        { id: 'viewhomework', icon: '📝', label: 'Homework' },
-        { id: 'viewexamresults', icon: '📈', label: 'Exam Results' },
-        { id: 'viewreportcards', icon: '📄', label: 'Report Cards' },
-        { id: 'examschedule', icon: '📅', label: 'Exam Schedule' },
-        { id: 'timetable', icon: '🗓️', label: 'Timetable' },
-        { id: 'profile', icon: '👤', label: 'Profile' },
-        { id: 'changepassword', icon: '🔐', label: 'Change Password' }
-    ],
     parent: [
         { id: 'home', icon: '🏠', label: 'Dashboard' },
         { id: 'attendance', icon: '📊', label: 'Attendance' },
@@ -174,6 +171,8 @@ const menuItems = {
         { id: 'teacherschedule', icon: '👨‍🏫', label: 'Teacher Schedule' },
         { id: 'examresults', icon: '📊', label: 'Exam Results' },
         { id: 'uploadmarks', icon: '📈', label: 'Upload Marks' },
+        { id: 'manualmarks', icon: '📊', label: 'Manual Marks Upload' },
+        { id: 'marksapproval', icon: '✅', label: 'Marks Approval' },
         { id: 'myclasses', icon: '👥', label: 'My Classes' },
         { id: 'teacherissues', icon: '⚠️', label: 'Issues' },
         { id: 'teacheranalytics', icon: '📊', label: 'My Analytics' },
@@ -208,8 +207,6 @@ const menuItems = {
     { id: 'attendanceanalytics', icon: '📈', label: 'Attendance Analytics' },
     { id: 'performanceanalytics', icon: '🎯', label: 'Performance Analytics' },
     { id: 'studentanalysis', icon: '👥', label: 'Student Analysis' },
-    { id: 'shufflestudents', icon: '🔀', label: 'Shuffle Students' },
-    { id: 'promotion', icon: '📚', label: 'Student Promotion' },
     { id: 'removestudent', icon: '🚫', label: 'Remove Student' },
     { id: 'deletestudent', icon: '❌', label: 'Delete Student' },
     { id: 'manageparents', icon: '👨‍👩‍👧', label: 'Manage Parents' },
@@ -232,8 +229,48 @@ const menuItems = {
         { id: 'attendanceanalytics', icon: '📈', label: 'Attendance Analytics' },
         { id: 'performanceanalytics', icon: '🎯', label: 'Performance Analytics' },
         { id: 'studentanalysis', icon: '👥', label: 'Student Analysis' },
-        { id: 'shufflestudents', icon: '🔀', label: 'Shuffle Students' },
-        { id: 'promotion', icon: '📚', label: 'Student Promotion' },
+        { id: 'removestudent', icon: '🚫', label: 'Remove Student' },
+        { id: 'deletestudent', icon: '❌', label: 'Delete Student' },
+        { id: 'manageparents', icon: '👨‍👩‍👧', label: 'Manage Parents' },
+        { id: 'holidays', icon: '🎉', label: 'Holidays' },
+        { id: 'register', icon: '📝', label: 'Register' },
+        { id: 'timetable', icon: '🗓️', label: 'Timetable' },
+        { id: 'profile', icon: '👤', label: 'Profile' },
+        { id: 'changepassword', icon: '🔐', label: 'Change Password' }
+    ],
+    vpjunior: [
+        { id: 'home', icon: '🏠', label: 'Dashboard' },
+        { id: 'classmanagement', icon: '🏫', label: 'Class Management' },
+        { id: 'timetablemanagement', icon: '🗓️', label: 'Timetable Management' },
+        { id: 'examschedule', icon: '📝', label: 'Exam Schedule' },
+        { id: 'bulkupload', icon: '📤', label: 'New Students Upload' },
+        { id: 'appointteacher', icon: '👨‍🏫', label: 'Appoint Teacher' },
+        { id: 'assignduties', icon: '📋', label: 'Assign Duties' },
+        { id: 'vpissues', icon: '⚠️', label: 'Issues' },
+        { id: 'attendanceanalytics', icon: '📈', label: 'Attendance Analytics' },
+        { id: 'performanceanalytics', icon: '🎯', label: 'Performance Analytics' },
+        { id: 'studentanalysis', icon: '👥', label: 'Student Analysis' },
+        { id: 'removestudent', icon: '🚫', label: 'Remove Student' },
+        { id: 'deletestudent', icon: '❌', label: 'Delete Student' },
+        { id: 'manageparents', icon: '👨‍👩‍👧', label: 'Manage Parents' },
+        { id: 'holidays', icon: '🎉', label: 'Holidays' },
+        { id: 'register', icon: '📝', label: 'Register' },
+        { id: 'timetable', icon: '🗓️', label: 'Timetable' },
+        { id: 'profile', icon: '👤', label: 'Profile' },
+        { id: 'changepassword', icon: '🔐', label: 'Change Password' }
+    ],
+    vpsenior: [
+        { id: 'home', icon: '🏠', label: 'Dashboard' },
+        { id: 'classmanagement', icon: '🏫', label: 'Class Management' },
+        { id: 'timetablemanagement', icon: '🗓️', label: 'Timetable Management' },
+        { id: 'examschedule', icon: '📝', label: 'Exam Schedule' },
+        { id: 'bulkupload', icon: '📤', label: 'New Students Upload' },
+        { id: 'appointteacher', icon: '👨‍🏫', label: 'Appoint Teacher' },
+        { id: 'assignduties', icon: '📋', label: 'Assign Duties' },
+        { id: 'vpissues', icon: '⚠️', label: 'Issues' },
+        { id: 'attendanceanalytics', icon: '📈', label: 'Attendance Analytics' },
+        { id: 'performanceanalytics', icon: '🎯', label: 'Performance Analytics' },
+        { id: 'studentanalysis', icon: '👥', label: 'Student Analysis' },
         { id: 'removestudent', icon: '🚫', label: 'Remove Student' },
         { id: 'deletestudent', icon: '❌', label: 'Delete Student' },
         { id: 'manageparents', icon: '👨‍👩‍👧', label: 'Manage Parents' },
@@ -278,317 +315,6 @@ const menuItems = {
     ]
 };
 
-// ============================================
-// SECURITY HELPER FUNCTIONS
-// ============================================
-
-/**
- * Escapes HTML to prevent XSS attacks
- * Converts special characters to HTML entities
- */
-function escapeHTML(text) {
-    if (!text) return '';
-    if (typeof text !== 'string') text = String(text);
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-/**
- * Input validation helper library
- */
-const InputValidator = {
-    // Validate student ID (numeric, 3-10 digits)
-    studentId: function(id) {
-        if (!id) return { valid: false, message: 'Student ID is required' };
-        const trimmed = String(id).trim();
-        if (!/^\d{3,10}$/.test(trimmed)) {
-            return { valid: false, message: 'Student ID must be 3-10 digits' };
-        }
-        return { valid: true, value: trimmed };
-    },
-
-    // Validate name (letters, spaces, hyphens, apostrophes only)
-    name: function(name) {
-        if (!name) return { valid: false, message: 'Name is required' };
-        const trimmed = String(name).trim();
-        if (trimmed.length < 2 || trimmed.length > 100) {
-            return { valid: false, message: 'Name must be 2-100 characters' };
-        }
-        if (!/^[a-zA-Z\s\-'\.]+$/.test(trimmed)) {
-            return { valid: false, message: 'Name can only contain letters, spaces, hyphens, and apostrophes' };
-        }
-        return { valid: true, value: trimmed };
-    },
-
-    // Validate email
-    email: function(email) {
-        if (!email) return { valid: false, message: 'Email is required' };
-        const trimmed = String(email).trim().toLowerCase();
-        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-        if (!emailRegex.test(trimmed)) {
-            return { valid: false, message: 'Invalid email format' };
-        }
-        return { valid: true, value: trimmed };
-    },
-
-    // Validate Indian phone number (10 digits)
-    phone: function(phone) {
-        if (!phone) return { valid: false, message: 'Phone number is required' };
-        const cleaned = String(phone).replace(/\D/g, '');
-        if (cleaned.length !== 10) {
-            return { valid: false, message: 'Phone number must be 10 digits' };
-        }
-        if (!/^[6-9]\d{9}$/.test(cleaned)) {
-            return { valid: false, message: 'Invalid Indian phone number format' };
-        }
-        return { valid: true, value: cleaned };
-    },
-
-    // Validate class name (alphanumeric, max 10 chars)
-    className: function(className) {
-        if (!className) return { valid: false, message: 'Class name is required' };
-        const trimmed = String(className).trim();
-        if (!/^[A-Za-z0-9]{1,10}$/.test(trimmed)) {
-            return { valid: false, message: 'Class name must be 1-10 alphanumeric characters' };
-        }
-        return { valid: true, value: trimmed.toUpperCase() };
-    },
-
-    // Validate subject name
-    subject: function(subject) {
-        if (!subject) return { valid: false, message: 'Subject is required' };
-        const trimmed = String(subject).trim();
-        if (trimmed.length < 2 || trimmed.length > 50) {
-            return { valid: false, message: 'Subject must be 2-50 characters' };
-        }
-        if (!/^[a-zA-Z\s\-&()]+$/.test(trimmed)) {
-            return { valid: false, message: 'Subject contains invalid characters' };
-        }
-        return { valid: true, value: trimmed };
-    },
-
-    // Validate marks (0-100)
-    marks: function(marks) {
-        if (marks === '' || marks === null || marks === undefined) {
-            return { valid: false, message: 'Marks are required' };
-        }
-        const num = Number(marks);
-        if (isNaN(num) || num < 0 || num > 100) {
-            return { valid: false, message: 'Marks must be between 0 and 100' };
-        }
-        return { valid: true, value: num };
-    },
-
-    // Validate date (not in future unless specified)
-    date: function(date, allowFuture = false) {
-        if (!date) return { valid: false, message: 'Date is required' };
-        const dateObj = new Date(date);
-        if (isNaN(dateObj.getTime())) {
-            return { valid: false, message: 'Invalid date format' };
-        }
-        if (!allowFuture && dateObj > new Date()) {
-            return { valid: false, message: 'Date cannot be in the future' };
-        }
-        return { valid: true, value: date };
-    },
-
-    // Validate text content (general purpose)
-    text: function(text, minLength = 1, maxLength = 500) {
-        if (!text) return { valid: false, message: 'This field is required' };
-        const trimmed = String(text).trim();
-        if (trimmed.length < minLength) {
-            return { valid: false, message: `Minimum length is ${minLength} characters` };
-        }
-        if (trimmed.length > maxLength) {
-            return { valid: false, message: `Maximum length is ${maxLength} characters` };
-        }
-        return { valid: true, value: trimmed };
-    }
-};
-
-/**
- * Require authentication check for critical operations
- * Ensures user is logged in and session is valid
- */
-function requireAuth() {
-    if (!window.auth || !window.auth.getCurrentUser()) {
-        showModal('Error', 'Authentication required. Please log in again.', 'error');
-        setTimeout(() => {
-            window.location.href = 'index.html';
-        }, 2000);
-        return false;
-    }
-    return true;
-}
-
-/**
- * Verify user has permission for operation
- * @param {string|string[]} allowedRoles - Role or array of roles allowed
- */
-function checkPermission(allowedRoles) {
-    if (!requireAuth()) return false;
-
-    const currentUser = window.auth.getCurrentUser();
-    const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
-
-    if (!roles.includes(currentUser.role)) {
-        showModal('Error', 'You do not have permission to perform this action.', 'error');
-        return false;
-    }
-    return true;
-}
-
-// ============================================
-// DROPDOWN POPULATION HELPERS
-// ============================================
-
-/**
- * Populate class dropdown with data
- * @param {string} selectId - ID of select element
- * @param {string} defaultText - Default option text
- * @param {function} onChangeCallback - Optional callback on change
- */
-async function populateClassDropdown(selectId, defaultText = '-- Select Class --', onChangeCallback = null) {
-    const select = document.getElementById(selectId);
-    if (!select) return;
-
-    select.innerHTML = `<option value="">${escapeHTML(defaultText)}</option>`;
-    select.disabled = true;
-
-    try {
-        const client = window.supabaseClient.getClient();
-        const { data: classes, error } = await client
-            .from('classes')
-            .select('name')
-            .order('name');
-
-        if (error) throw error;
-
-        select.disabled = false;
-
-        if (!classes || classes.length === 0) {
-            select.innerHTML = `<option value="">No classes available</option>`;
-            return;
-        }
-
-        select.innerHTML = `<option value="">${escapeHTML(defaultText)}</option>` +
-            classes.map(c => `<option value="${escapeHTML(c.name)}">${escapeHTML(c.name)}</option>`).join('');
-
-        if (onChangeCallback) {
-            select.addEventListener('change', onChangeCallback);
-        }
-    } catch (error) {
-        console.error('Error loading classes:', error);
-        select.innerHTML = `<option value="">Failed to load. Click to retry.</option>`;
-        select.disabled = false;
-        select.addEventListener('click', () => populateClassDropdown(selectId, defaultText, onChangeCallback), { once: true });
-    }
-}
-
-/**
- * Populate student dropdown for a specific class
- * @param {string} selectId - ID of select element
- * @param {string} className - Class name to filter students
- * @param {string} defaultText - Default option text
- */
-async function populateStudentDropdown(selectId, className, defaultText = '-- Select Student --') {
-    const select = document.getElementById(selectId);
-    if (!select) return;
-
-    select.innerHTML = `<option value="">${escapeHTML(defaultText)}</option>`;
-
-    if (!className) {
-        select.disabled = true;
-        return;
-    }
-
-    select.disabled = true;
-    select.innerHTML = `<option value="">Loading students...</option>`;
-
-    try {
-        const client = window.supabaseClient.getClient();
-        const { data: students, error } = await client
-            .from('students')
-            .select('id, name')
-            .eq('class', className)
-            .order('name');
-
-        if (error) throw error;
-
-        select.disabled = false;
-
-        if (!students || students.length === 0) {
-            select.innerHTML = `<option value="">No students in this class</option>`;
-            return;
-        }
-
-        select.innerHTML = `<option value="">${escapeHTML(defaultText)}</option>` +
-            students.map(s => `<option value="${escapeHTML(s.id)}">${escapeHTML(s.name)} (${escapeHTML(s.id)})</option>`).join('');
-    } catch (error) {
-        console.error('Error loading students:', error);
-        select.innerHTML = `<option value="">Failed to load students</option>`;
-        select.disabled = false;
-    }
-}
-
-/**
- * Populate subject dropdown
- * @param {string} selectId - ID of select element
- * @param {string} defaultText - Default option text
- */
-async function populateSubjectDropdown(selectId, defaultText = '-- Select Subject --') {
-    const select = document.getElementById(selectId);
-    if (!select) return;
-
-    const commonSubjects = [
-        'Mathematics', 'Physics', 'Chemistry', 'Biology',
-        'English', 'Hindi', 'Social Science', 'Computer Science',
-        'Physical Education', 'Art', 'Music'
-    ];
-
-    select.innerHTML = `<option value="">${escapeHTML(defaultText)}</option>` +
-        commonSubjects.map(s => `<option value="${escapeHTML(s)}">${escapeHTML(s)}</option>`).join('');
-}
-
-/**
- * Populate teacher dropdown
- * @param {string} selectId - ID of select element
- * @param {string} defaultText - Default option text
- */
-async function populateTeacherDropdown(selectId, defaultText = '-- Select Teacher --') {
-    const select = document.getElementById(selectId);
-    if (!select) return;
-
-    select.innerHTML = `<option value="">${escapeHTML(defaultText)}</option>`;
-    select.disabled = true;
-    select.innerHTML = `<option value="">Loading teachers...</option>`;
-
-    try {
-        const client = window.supabaseClient.getClient();
-        const { data: teachers, error } = await client
-            .from('teachers')
-            .select('id, name')
-            .order('name');
-
-        if (error) throw error;
-
-        select.disabled = false;
-
-        if (!teachers || teachers.length === 0) {
-            select.innerHTML = `<option value="">No teachers found</option>`;
-            return;
-        }
-
-        select.innerHTML = `<option value="">${escapeHTML(defaultText)}</option>` +
-            teachers.map(t => `<option value="${escapeHTML(t.id)}">${escapeHTML(t.name)} (${escapeHTML(t.id)})</option>`).join('');
-    } catch (error) {
-        console.error('Error loading teachers:', error);
-        select.innerHTML = `<option value="">Failed to load teachers</option>`;
-        select.disabled = false;
-    }
-}
-
 // Initialize application
 async function initApp() {
     if (initialized) return;
@@ -611,7 +337,7 @@ async function initApp() {
         const currentUser = window.auth.getCurrentUser();
 
         // Render user info
-        await renderUserInfo(currentUser);
+        renderUserInfo(currentUser);
 
         // Render menu
         renderMenu(currentUser.role);
@@ -629,49 +355,17 @@ async function initApp() {
 }
 
 // Render user info
-async function renderUserInfo(user) {
+function renderUserInfo(user) {
     const userAvatar = document.getElementById('userAvatar');
     const userName = document.getElementById('userName');
     const userId = document.getElementById('userId');
     const userRole = document.getElementById('userRole');
 
-    let displayName = user.name || user.username;
-    let initials = '?';
-
-    // For parents, show student name in sidebar
-    if (user.role === 'parent') {
-        const client = window.supabaseClient.getClient();
-        const { data: parent } = await client
-            .from('parents')
-            .select('student_id, name')
-            .eq('id', user.username)
-            .maybeSingle();
-
-        if (parent && parent.student_id) {
-            const { data: student } = await client
-                .from('students')
-                .select('name')
-                .eq('id', parent.student_id)
-                .maybeSingle();
-
-            if (student && student.name) {
-                displayName = student.name;
-                initials = student.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
-            }
-
-            // Store parent info for use in content area
-            window.parentInfo = {
-                parentName: parent.name || user.name || user.username,
-                studentName: student?.name || 'Student'
-            };
-        }
-    } else {
-        // For students and other roles, use their own name
-        initials = user.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : '?';
-    }
-
+    // Generate avatar initials
+    const initials = user.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : '?';
     userAvatar.textContent = initials;
-    userName.textContent = displayName;
+
+    userName.textContent = user.name || user.username;
     userId.textContent = `@${user.username}`;
     userRole.textContent = formatRole(user.role);
 }
@@ -679,38 +373,17 @@ async function renderUserInfo(user) {
 // Format role for display
 function formatRole(role) {
     const roleMap = {
-        student: 'Student',
         parent: 'Parent',
         teacher: 'Teacher',
         coordinator: 'Coordinator',
         viceprincipal: 'Vice Principal',
         superviceprincipal: 'Super Vice Principal',
+        vpjunior: 'VP Junior (Grades 6-8)',
+        vpsenior: 'VP Senior (Grades 9-10)',
         hassan: 'Hassan Sir (Admin)',
         classteacher: 'Class Teacher'
     };
     return roleMap[role] || role;
-}
-
-// Helper function to get parent info banner HTML
-function getParentInfoBanner() {
-    const currentUser = window.auth.getCurrentUser();
-    if (currentUser.role === 'parent' && window.parentInfo) {
-        return `
-            <div style="background: linear-gradient(135deg, #5ca870 0%, #4d9160 100%); padding: 15px 20px; border-radius: 10px; margin-bottom: 20px; color: white; box-shadow: 0 3px 10px rgba(0,0,0,0.1);">
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <div>
-                        <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">Parent Account</div>
-                        <div style="font-size: 18px; font-weight: bold;">${window.parentInfo.parentName}</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">Viewing data for</div>
-                        <div style="font-size: 18px; font-weight: bold;">${window.parentInfo.studentName}</div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    return '';
 }
 
 // PROMPT 1 - NEW CODE: Organize menu items into sections
@@ -926,9 +599,6 @@ function renderTab(tabId) {
             break;
         case 'shufflestudents':
             renderShuffleStudents();
-            break;
-        case 'promotion':
-            renderStudentPromotion();
             break;
         case 'analytics':
             renderAnalytics();
@@ -1180,7 +850,7 @@ async function renderAttendance() {
             // Parent viewing student's attendance
             const { data: parent, error: parentError } = await client
                 .from('parents')
-                .select('student_id, name')
+                .select('student_id, name, status')
                 .eq('id', currentUser.username)
                 .maybeSingle();
 
@@ -1262,7 +932,6 @@ async function renderAttendance() {
         hideLoading();
 
         contentArea.innerHTML = `
-            ${getParentInfoBanner()}
             <div class="card">
                 <h3>📊 Attendance Records - ${student?.name || 'Student'}</h3>
                 <p style="color: #666; margin-bottom: 20px;">Class: ${student?.class || 'N/A'}</p>
@@ -1310,13 +979,12 @@ async function renderAttendance() {
                         <tbody>
                             ${attendanceRecords.map(a => {
                                 const date = new Date(a.date).toLocaleDateString();
-                                const status = a.status || 'unknown';
-                                const statusColor = status === 'present' ? '#4CAF50' : status === 'absent' ? '#f44336' : '#FF9800';
+                                const statusColor = a.status === 'present' ? '#4CAF50' : a.status === 'absent' ? '#f44336' : '#FF9800';
                                 return `
                                     <tr>
                                         <td>${date}</td>
-                                        <td>Period ${a.period || '-'}</td>
-                                        <td><span class="badge" style="background: ${statusColor};">${status.toUpperCase()}</span></td>
+                                        <td>Period ${a.period}</td>
+                                        <td><span class="badge" style="background: ${statusColor};">${a.status.toUpperCase()}</span></td>
                                         <td>${a.behavior || 'N/A'}</td>
                                         <td>${a.remarks || '-'}</td>
                                     </tr>
@@ -1345,64 +1013,38 @@ async function renderViewHomework() {
     const client = window.supabaseClient.getClient();
 
     try {
-        let student = null;
+        // Get parent's student
+        const { data: parent } = await client
+            .from('parents')
+            .select('student_id')
+            .eq('id', currentUser.username)
+            .maybeSingle();
 
-        // Check if user is a student (direct access)
-        if (currentUser.role === 'student') {
-            // Student viewing their own homework
-            const { data: studentData } = await client
-                .from('students')
-                .select('id, name, class')
-                .eq('id', currentUser.username)
-                .maybeSingle();
+        if (!parent) {
+            contentArea.innerHTML = `
+                <div class="card">
+                    <h3>📝 Homework</h3>
+                    <p style="color: #e74c3c;">Parent information not found.</p>
+                </div>
+            `;
+            return;
+        }
 
-            if (!studentData) {
-                contentArea.innerHTML = `
-                    <div class="card">
-                        <h3>📝 Homework</h3>
-                        <p style="color: #e74c3c;">Student information not found.</p>
-                    </div>
-                `;
-                return;
-            }
+        // Get student's class
+        const { data: student } = await client
+            .from('students')
+            .select('class, name')
+            .eq('id', parent.student_id)
+            .maybeSingle();
 
-            student = studentData;
-        } else {
-            // Parent viewing student's homework
-            const { data: parent } = await client
-                .from('parents')
-                .select('student_id')
-                .eq('id', currentUser.username)
-                .maybeSingle();
-
-            if (!parent) {
-                contentArea.innerHTML = `
-                    <div class="card">
-                        <h3>📝 Homework</h3>
-                        <p style="color: #e74c3c;">Parent information not found.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            // Get student's class
-            const { data: studentData } = await client
-                .from('students')
-                .select('class, name')
-                .eq('id', parent.student_id)
-                .maybeSingle();
-
-            if (!studentData) {
-                contentArea.innerHTML = `
-                    <div class="card">
-                        <h3>📝 Homework</h3>
-                        <p style="color: #e74c3c;">Student information not found.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            student = studentData;
+        if (!student) {
+            contentArea.innerHTML = `
+                <div class="card">
+                    <h3>📝 Homework</h3>
+                    <p style="color: #e74c3c;">Student information not found.</p>
+                </div>
+            `;
+            return;
         }
 
         // Get homework for student's class
@@ -1414,7 +1056,6 @@ async function renderViewHomework() {
             .limit(50);
 
         contentArea.innerHTML = `
-            ${getParentInfoBanner()}
             <div class="card">
                 <h3>📝 Homework - ${student.name} (${student.class})</h3>
 
@@ -1463,68 +1104,38 @@ async function renderViewExamResults() {
     const client = window.supabaseClient.getClient();
 
     try {
-        let studentId = null;
-        let student = null;
+        // Get parent's student
+        const { data: parent } = await client
+            .from('parents')
+            .select('student_id')
+            .eq('id', currentUser.username)
+            .maybeSingle();
 
-        // Check if user is a student (direct access)
-        if (currentUser.role === 'student') {
-            // Student viewing their own exam results
-            const { data: studentData } = await client
-                .from('students')
-                .select('id, name')
-                .eq('id', currentUser.username)
-                .maybeSingle();
-
-            if (!studentData) {
-                contentArea.innerHTML = `
-                    <div class="card">
-                        <h3>📈 Exam Results</h3>
-                        <p style="color: #e74c3c;">Student information not found.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            studentId = studentData.id;
-            student = studentData;
-        } else {
-            // Parent viewing student's exam results
-            const { data: parent } = await client
-                .from('parents')
-                .select('student_id')
-                .eq('id', currentUser.username)
-                .maybeSingle();
-
-            if (!parent) {
-                contentArea.innerHTML = `
-                    <div class="card">
-                        <h3>📈 Exam Results</h3>
-                        <p style="color: #e74c3c;">Parent information not found.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            // Get student info
-            const { data: studentData } = await client
-                .from('students')
-                .select('name')
-                .eq('id', parent.student_id)
-                .maybeSingle();
-
-            studentId = parent.student_id;
-            student = studentData;
+        if (!parent) {
+            contentArea.innerHTML = `
+                <div class="card">
+                    <h3>📈 Exam Results</h3>
+                    <p style="color: #e74c3c;">Parent information not found.</p>
+                </div>
+            `;
+            return;
         }
+
+        // Get student info
+        const { data: student } = await client
+            .from('students')
+            .select('name')
+            .eq('id', parent.student_id)
+            .maybeSingle();
 
         // Get exam results for student
         const { data: results } = await client
             .from('exam_results')
             .select('*')
-            .eq('student_id', studentId)
+            .eq('student_id', parent.student_id)
             .order('created_at', { ascending: false });
 
         contentArea.innerHTML = `
-            ${getParentInfoBanner()}
             <div class="card">
                 <h3>📈 Exam Results - ${student?.name || 'Student'}</h3>
 
@@ -1641,7 +1252,6 @@ async function renderViewReportCards() {
             .order('created_at', { ascending: false });
 
         contentArea.innerHTML = `
-            ${getParentInfoBanner()}
             <div class="card">
                 <h3>📄 Report Cards - ${student?.name || 'Student'} (${student?.class || ''})</h3>
 
@@ -1792,7 +1402,6 @@ async function renderExamSchedule() {
             `📅 Exam Schedule - ${studentName} (${studentClass})`;
 
         contentArea.innerHTML = `
-            ${getParentInfoBanner()}
             <div class="card">
                 <h3>${title}</h3>
 
@@ -1881,15 +1490,7 @@ async function renderTimetable() {
         let className = '';
 
         // Determine the class based on user role
-        if (currentUser.role === 'student') {
-            // Get student's own class
-            const { data: student } = await client
-                .from('students')
-                .select('class')
-                .eq('id', currentUser.username)
-                .maybeSingle();
-            className = student?.class || '';
-        } else if (currentUser.role === 'parent') {
+        if (currentUser.role === 'parent') {
             // Get parent's student class
             const { data: parent } = await client
                 .from('parents')
@@ -1913,8 +1514,8 @@ async function renderTimetable() {
                 .eq('id', currentUser.username)
                 .maybeSingle();
             className = classTeacher?.class || '';
-        } else if (currentUser.role === 'teacher' || currentUser.role === 'coordinator') {
-            // For teachers and coordinators, get all classes
+        } else if (currentUser.role === 'teacher') {
+            // For teachers, get all classes
             const { data: classes } = await client
                 .from('classes')
                 .select('name')
@@ -1961,7 +1562,6 @@ async function renderTimetable() {
         hideLoading();
 
         contentArea.innerHTML = `
-            ${getParentInfoBanner()}
             <div class="card">
                 <h3>🗓️ Class Timetable</h3>
                 <p style="margin-bottom: 20px; color: #666;">Class: ${className}</p>
@@ -2767,37 +2367,6 @@ async function renderHomework() {
 
             if (error) throw error;
 
-            // Send notifications to students and parents in the class
-            const { data: students } = await client
-                .from('students')
-                .select('id, parent_id, name')
-                .eq('class', homeworkData.class)
-                .eq('status', 'active');
-
-            if (students) {
-                for (const student of students) {
-                    // Notify student
-                    await createNotification(
-                        student.id,
-                        'New Homework Assigned',
-                        `${homeworkData.subject}: ${homeworkData.topic} - Due: ${homeworkData.due_date || 'Not specified'}`,
-                        'info',
-                        '📝'
-                    );
-
-                    // Notify parent
-                    if (student.parent_id) {
-                        await createNotification(
-                            student.parent_id,
-                            'Homework Assigned',
-                            `${student.name} - ${homeworkData.subject}: ${homeworkData.topic}`,
-                            'info',
-                            '📝'
-                        );
-                    }
-                }
-            }
-
             hideLoading();
             showModal('Success', 'Homework assigned successfully!', 'success');
             renderHomework(); // Refresh the page
@@ -2828,7 +2397,7 @@ async function renderHomeworkManagement() {
         contentArea.innerHTML = `
             <div class="card">
                 <h3>📚 Homework Management</h3>
-                <p style="color: #666; margin-bottom: 20px;">View, edit, and manage all homework assignments.</p>
+                <p style="color: #666; margin-bottom: 20px;">View and manage all homework assignments.</p>
 
                 ${homeworkList && homeworkList.length > 0 ? `
                     <div style="overflow-x: auto;">
@@ -2854,10 +2423,7 @@ async function renderHomeworkManagement() {
                                         <td style="max-width: 300px;">${hw.description || 'N/A'}</td>
                                         <td>${hw.due_date ? new Date(hw.due_date).toLocaleDateString() : 'N/A'}</td>
                                         <td>
-                                            <button class="btn-primary btn-sm" onclick="editHomework(${hw.id})">
-                                                ✏️ Edit
-                                            </button>
-                                            <button class="btn-danger btn-sm" onclick="deleteHomework(${hw.id}, '${hw.title.replace(/'/g, "\\'")}')">
+                                            <button class="btn-danger btn-sm" onclick="deleteHomework(${hw.id}, '${hw.title}')">
                                                 🗑️ Delete
                                             </button>
                                         </td>
@@ -2910,91 +2476,6 @@ window.deleteHomework = async function(homeworkId, title) {
     );
 };
 
-window.editHomework = async function(homeworkId) {
-    try {
-        showLoading();
-        const client = window.supabaseClient.getClient();
-
-        // Fetch the homework details
-        const { data: homework, error } = await client
-            .from('homework')
-            .select('*')
-            .eq('id', homeworkId)
-            .single();
-
-        if (error) throw error;
-
-        hideLoading();
-
-        // Show edit form
-        const contentArea = document.getElementById('contentArea');
-        contentArea.innerHTML = `
-            <div class="card">
-                <h3>✏️ Edit Homework</h3>
-                <form id="editHomeworkForm" style="max-width: 600px;">
-                    <div class="form-group">
-                        <label for="editClass">Class *</label>
-                        <input type="text" id="editClass" value="${homework.class}" required readonly>
-                    </div>
-                    <div class="form-group">
-                        <label for="editSubject">Subject *</label>
-                        <input type="text" id="editSubject" value="${homework.subject}" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="editTitle">Title *</label>
-                        <input type="text" id="editTitle" value="${homework.title}" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="editDescription">Description</label>
-                        <textarea id="editDescription" rows="4">${homework.description || ''}</textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="editDueDate">Due Date</label>
-                        <input type="date" id="editDueDate" value="${homework.due_date ? homework.due_date.split('T')[0] : ''}">
-                    </div>
-                    <div style="display: flex; gap: 10px;">
-                        <button type="submit" class="btn-primary">Save Changes</button>
-                        <button type="button" class="btn-secondary" onclick="renderHomeworkManagement()">Cancel</button>
-                    </div>
-                </form>
-            </div>
-        `;
-
-        // Handle form submission
-        document.getElementById('editHomeworkForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const updatedData = {
-                subject: document.getElementById('editSubject').value,
-                title: document.getElementById('editTitle').value,
-                description: document.getElementById('editDescription').value,
-                due_date: document.getElementById('editDueDate').value || null
-            };
-
-            try {
-                showLoading();
-
-                const { error } = await client
-                    .from('homework')
-                    .update(updatedData)
-                    .eq('id', homeworkId);
-
-                if (error) throw error;
-
-                hideLoading();
-                showModal('Success', 'Homework updated successfully!', 'success');
-                renderHomeworkManagement();
-            } catch (error) {
-                hideLoading();
-                showModal('Error', `Failed to update homework: ${error.message}`, 'error');
-            }
-        });
-    } catch (error) {
-        hideLoading();
-        showModal('Error', `Failed to load homework: ${error.message}`, 'error');
-    }
-};
-
 async function renderTeacherSchedule() {
     const contentArea = document.getElementById('contentArea');
     const client = window.supabaseClient.getClient();
@@ -3010,43 +2491,19 @@ async function renderTeacherSchedule() {
             .eq('assigned_to', currentUser.username)
             .order('date', { ascending: false });
 
-        // Get teacher's classes and subjects
+        // Get teacher's classes (from timetables or class assignments)
         const { data: teacherData } = await client
             .from('teachers')
             .select('subjects, classes')
             .eq('id', currentUser.username)
             .maybeSingle();
 
-        // Get timetable entries for this teacher
-        const { data: timetableEntries } = await client
-            .from('timetable')
-            .select('*')
-            .eq('teacher_id', currentUser.username)
-            .order('day_of_week')
-            .order('period');
-
         hideLoading();
-
-        // Organize timetable by day and period
-        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const periods = Array.from(new Set(timetableEntries?.map(e => e.period) || [])).sort();
-        
-        const timetableGrid = {};
-        days.forEach(day => {
-            timetableGrid[day] = {};
-        });
-
-        timetableEntries?.forEach(entry => {
-            if (!timetableGrid[entry.day_of_week]) {
-                timetableGrid[entry.day_of_week] = {};
-            }
-            timetableGrid[entry.day_of_week][entry.period] = entry;
-        });
 
         contentArea.innerHTML = `
             <div class="card">
                 <h3>👨‍🏫 Teacher Schedule</h3>
-                <p style="color: #666; margin-bottom: 20px;">Your teaching schedule, timetable, and assigned duties.</p>
+                <p style="color: #666; margin-bottom: 20px;">Your teaching schedule and assigned duties.</p>
 
                 <div style="margin-bottom: 30px;">
                     <h4>📚 Teaching Assignment</h4>
@@ -3055,45 +2512,6 @@ async function renderTeacherSchedule() {
                         <p style="margin-top: 8px;"><strong>Classes:</strong> ${teacherData?.classes || 'Not assigned'}</p>
                     </div>
                 </div>
-
-                ${timetableEntries && timetableEntries.length > 0 ? `
-                    <div style="margin-bottom: 30px;">
-                        <h4>📅 Weekly Timetable</h4>
-                        <div style="overflow-x: auto; margin-top: 15px;">
-                            <table style="min-width: 100%;">
-                                <thead>
-                                    <tr>
-                                        <th style="min-width: 100px;">Day</th>
-                                        ${periods.map(p => `<th>Period ${p}</th>`).join('')}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${days.map(day => `
-                                        <tr>
-                                            <td><strong>${day}</strong></td>
-                                            ${periods.map(period => {
-                                                const entry = timetableGrid[day]?.[period];
-                                                return `<td style="background: ${entry ? '#e8f5e9' : '#fafafa'}; padding: 12px;">
-                                                    ${entry ? `
-                                                        <div style="font-size: 13px;">
-                                                            <strong>${entry.subject}</strong><br>
-                                                            <span style="color: #666;">${entry.class}</span><br>
-                                                            <span style="color: #999; font-size: 11px;">${entry.start_time || ''} - ${entry.end_time || ''}</span>
-                                                        </div>
-                                                    ` : '<span style="color: #ccc;">Free</span>'}
-                                                </td>`;
-                                            }).join('')}
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                ` : `
-                    <div style="margin-bottom: 30px; text-align: center; padding: 40px; background: #f8f9fa; border-radius: 8px;">
-                        <p style="color: #999;">No timetable entries found. Contact administration to set up your schedule.</p>
-                    </div>
-                `}
 
                 <div>
                     <h4>📋 Assigned Duties</h4>
@@ -3312,16 +2730,6 @@ window.rejectMarks = async function(marksId, examName) {
                 showLoading();
                 const client = window.supabaseClient.getClient();
 
-                // First get the workflow data to get teacher info
-                const { data: workflowData, error: fetchError } = await client
-                    .from('marks_workflow')
-                    .select('*')
-                    .eq('id', marksId)
-                    .single();
-
-                if (fetchError) throw fetchError;
-
-                // Update workflow status
                 const { error } = await client
                     .from('marks_workflow')
                     .update({
@@ -3332,17 +2740,8 @@ window.rejectMarks = async function(marksId, examName) {
 
                 if (error) throw error;
 
-                // Send notification to teacher
-                await createNotification(
-                    workflowData.submitted_by,
-                    'Marks Rejected',
-                    `Your marks for ${workflowData.exam_name} (${workflowData.subject}, ${workflowData.class}) have been rejected. Please review and resubmit.`,
-                    'error',
-                    '❌'
-                );
-
                 hideLoading();
-                showModal('Success', 'Marks rejected. Teacher has been notified.', 'success');
+                showModal('Success', 'Marks rejected. Teacher will be notified.', 'success');
                 renderMarksApproval();
             } catch (error) {
                 hideLoading();
@@ -3355,132 +2754,48 @@ window.rejectMarks = async function(marksId, examName) {
 async function renderExamResults() {
     const contentArea = document.getElementById('contentArea');
     const client = window.supabaseClient.getClient();
-    const currentUser = window.auth.getCurrentUser();
 
-    try {
-        showLoading();
+    // Get all exam results
+    const { data: results } = await client
+        .from('exam_results')
+        .select('*, students(name, class)')
+        .order('created_at', { ascending: false })
+        .limit(100);
 
-        const { data: teacherData } = await client
-            .from('teachers')
-            .select('subjects, classes')
-            .eq('id', currentUser.username)
-            .maybeSingle();
+    contentArea.innerHTML = `
+        <div class="card">
+            <h3>📊 Exam Results</h3>
 
-        const teacherSubjects = teacherData?.subjects?.split(',').map(s => s.trim()) || [];
-
-        const { data: workflowData } = await client
-            .from('marks_workflow')
-            .select('*')
-            .eq('submitted_by', currentUser.username)
-            .order('submitted_at', { ascending: false });
-
-        let results = [];
-        if (teacherSubjects.length > 0) {
-            const { data: approvedResults } = await client
-                .from('exam_results')
-                .select('*, students(name, class)')
-                .in('subject', teacherSubjects)
-                .order('created_at', { ascending: false })
-                .limit(200);
-            results = approvedResults || [];
-        }
-
-        hideLoading();
-
-        contentArea.innerHTML = `
-            <div class="card">
-                <h3>📊 Exam Results - My Uploads</h3>
-                <p style="color: #666; margin-bottom: 20px;">View marks you've uploaded and their approval status.</p>
-
-                <div style="margin-bottom: 30px;">
-                    <h4>📋 Marks Workflow Status</h4>
-                    ${workflowData && workflowData.length > 0 ? `
-                        <div style="overflow-x: auto; margin-top: 15px;">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Submitted On</th>
-                                        <th>Exam</th>
-                                        <th>Subject</th>
-                                        <th>Class</th>
-                                        <th>Students</th>
-                                        <th>Status</th>
-                                        <th>Approver</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${workflowData.map(workflow => `
-                                        <tr>
-                                            <td>${new Date(workflow.submitted_at).toLocaleDateString()}</td>
-                                            <td><strong>${workflow.exam_name}</strong></td>
-                                            <td>${workflow.subject}</td>
-                                            <td>${workflow.class}</td>
-                                            <td>${workflow.total_students || JSON.parse(workflow.marks_data || '[]').length}</td>
-                                            <td>
-                                                <span style="padding: 4px 12px; border-radius: 12px; font-size: 12px;
-                                                      background: ${workflow.status === 'approved' ? '#d4edda' : workflow.status === 'rejected' ? '#f8d7da' : '#fff3cd'};
-                                                      color: ${workflow.status === 'approved' ? '#155724' : workflow.status === 'rejected' ? '#721c24' : '#856404'};">
-                                                    ${workflow.status === 'approved' ? '✅ Approved' : workflow.status === 'rejected' ? '❌ Rejected' : '⏳ Pending'}
-                                                </span>
-                                            </td>
-                                            <td>${workflow.approver_id}</td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    ` : `
-                        <p style="text-align: center; color: #999; padding: 20px;">No marks uploaded yet. Use "Upload Marks" to submit.</p>
-                    `}
-                </div>
-
-                <div>
-                    <h4>✅ Approved & Published Results (My Subjects)</h4>
-                    ${results && results.length > 0 ? `
-                        <div style="overflow-x: auto; margin-top: 15px;">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Student ID</th>
-                                        <th>Student Name</th>
-                                        <th>Class</th>
-                                        <th>Exam</th>
-                                        <th>Subject</th>
-                                        <th>Marks</th>
-                                        <th>Grade</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${results.map(result => `
-                                        <tr>
-                                            <td>${result.student_id}</td>
-                                            <td>${result.students?.name || 'N/A'}</td>
-                                            <td>${result.students?.class || 'N/A'}</td>
-                                            <td>${result.exam_name}</td>
-                                            <td><strong>${result.subject}</strong></td>
-                                            <td>${result.marks}/${result.total_marks}</td>
-                                            <td><span class="badge">${result.grade || 'N/A'}</span></td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    ` : `
-                        <p style="text-align: center; color: #999; padding: 20px;">No approved results yet.</p>
-                    `}
-                </div>
-            </div>
-        `;
-    } catch (error) {
-        hideLoading();
-        console.error('Error loading exam results:', error);
-        contentArea.innerHTML = `
-            <div class="card">
-                <h3>📊 Exam Results</h3>
-                <p style="color: #e74c3c;">Error loading results. Please try again.</p>
-            </div>
-        `;
-    }
+            ${results && results.length > 0 ? `
+                <table style="width: 100%; margin-top: 20px;">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Student Name</th>
+                            <th>Class</th>
+                            <th>Exam</th>
+                            <th>Subject</th>
+                            <th>Marks</th>
+                            <th>Grade</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${results.map(result => `
+                            <tr>
+                                <td>${result.student_id}</td>
+                                <td>${result.students?.name || 'N/A'}</td>
+                                <td>${result.students?.class || 'N/A'}</td>
+                                <td>${result.exam_name}</td>
+                                <td>${result.subject}</td>
+                                <td>${result.marks}/${result.total_marks}</td>
+                                <td><span class="badge">${result.grade || 'N/A'}</span></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            ` : '<p style="margin-top: 20px;">No exam results available.</p>'}
+        </div>
+    `;
 }
 
 async function renderUploadMarks() {
@@ -3490,7 +2805,6 @@ async function renderUploadMarks() {
 
     // Get teacher info to determine which classes they teach
     let teacherClasses = [];
-    let teacherSubjects = [];
     if (currentUser.role === 'teacher') {
         const { data: teacher } = await client
             .from('teachers')
@@ -3500,7 +2814,6 @@ async function renderUploadMarks() {
 
         if (teacher && teacher.classes) {
             teacherClasses = teacher.classes.split(',').map(c => c.trim());
-            teacherSubjects = teacher.subjects ? teacher.subjects.split(',').map(s => s.trim()) : [];
         }
     } else if (currentUser.role === 'classteacher') {
         const { data: classTeacher } = await client
@@ -3523,8 +2836,8 @@ async function renderUploadMarks() {
 
     // Filter classes based on teacher assignment
     const classes = teacherClasses.length > 0
-        ? (allClasses || []).filter(c => teacherClasses.includes(c.name))
-        : (allClasses || []);
+        ? allClasses.filter(c => teacherClasses.includes(c.name))
+        : allClasses;
 
     contentArea.innerHTML = `
         <div class="card">
@@ -3547,10 +2860,7 @@ async function renderUploadMarks() {
                 </div>
                 <div class="form-group">
                     <label for="marksSubject">Subject *</label>
-                    <select id="marksSubject" required>
-                        <option value="">-- Select Subject --</option>
-                        ${teacherSubjects.map(s => `<option value="${s}">${s}</option>`).join('') || '<option value="">No subjects assigned</option>'}
-                    </select>
+                    <input type="text" id="marksSubject" placeholder="e.g., Mathematics" required>
                 </div>
                 <div class="form-group">
                     <label for="marksTotalMarks">Total Marks *</label>
@@ -3710,12 +3020,10 @@ async function submitMarks(students, examName, subject, totalMarks) {
             .from('marks_workflow')
             .insert([{
                 teacher_id: currentUser.username,
-                submitted_by: currentUser.username,
                 class: className,
                 exam_name: examName,
                 subject: subject,
                 total_marks: parseFloat(totalMarks),
-                total_students: marksRecords.length,
                 marks_data: JSON.stringify(marksRecords),
                 status: 'pending',
                 approver_id: approverId,
@@ -4141,23 +3449,6 @@ window.escalateToVP = async function(issueId, gradeLevel) {
                     .eq('id', issueId);
 
                 if (updateError) throw updateError;
-
-                // Get all Vice Principals and notify them
-                const { data: vicePrincipals } = await client
-                    .from('vice_principals')
-                    .select('id');
-
-                if (vicePrincipals) {
-                    for (const vp of vicePrincipals) {
-                        await createNotification(
-                            vp.id,
-                            'Issue Escalated',
-                            `Grade ${gradeLevel} issue has been escalated to you for review`,
-                            'warning',
-                            '🚨'
-                        );
-                    }
-                }
 
                 hideLoading();
                 showModal('Success', 'Issue escalated to Vice Principal successfully!', 'success');
@@ -5868,148 +5159,6 @@ async function renderVPIssues() {
                 transition: all 0.3s;
             }
 
-            /* ========== HEADER BANNER ========== */
-            .header-banner {
-                background: linear-gradient(135deg, #5ca870 0%, #4d9160 100%);
-                padding: 30px 20px;
-                text-align: center;
-                color: white;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            }
-
-            .header-banner h1 {
-                margin: 0;
-                font-size: 32px;
-                font-weight: 700;
-                text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            }
-
-            .header-banner p {
-                margin: 8px 0 0 0;
-                font-size: 16px;
-                opacity: 0.95;
-                font-style: italic;
-            }
-
-            /* ========== UNIVERSAL SEARCH BAR ========== */
-            .universal-search-bar {
-                position: relative;
-                z-index: 98;
-                background: #ffffff;
-                border-bottom: 1px solid #e0e0e0;
-                padding: 12px 20px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            }
-
-            .search-container {
-                max-width: 800px;
-                margin: 0 auto;
-                position: relative;
-            }
-
-            .search-icon {
-                position: absolute;
-                left: 15px;
-                top: 50%;
-                transform: translateY(-50%);
-                font-size: 18px;
-                color: #999;
-                pointer-events: none;
-            }
-
-            .universal-search-bar .search-input {
-                width: 100%;
-                padding: 12px 15px 12px 45px;
-                border: 1px solid #ddd;
-                border-radius: 25px;
-                font-size: 15px;
-                outline: none;
-                transition: all 0.3s;
-                background: white;
-            }
-
-            .universal-search-bar .search-input:focus {
-                border-color: #4CAF50;
-                box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
-            }
-
-            .search-results-dropdown {
-                position: absolute;
-                top: 100%;
-                left: 0;
-                right: 0;
-                margin-top: 8px;
-                background: white;
-                border: 1px solid #ddd;
-                border-radius: 12px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                max-height: 400px;
-                overflow-y: auto;
-                z-index: 1000;
-            }
-
-            .search-results-dropdown.hidden {
-                display: none;
-            }
-
-            .search-results-dropdown .search-empty,
-            .search-results-dropdown .search-loading,
-            .search-results-dropdown .search-error {
-                text-align: center;
-                padding: 30px 20px;
-                color: #999;
-                font-size: 14px;
-            }
-
-            .search-category {
-                padding: 10px 15px;
-            }
-
-            .search-category-title {
-                font-size: 11px;
-                font-weight: 600;
-                color: #999;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-                margin-bottom: 8px;
-                padding-left: 5px;
-            }
-
-            .search-result-item {
-                display: flex;
-                align-items: center;
-                padding: 10px 12px;
-                margin-bottom: 4px;
-                border-radius: 8px;
-                cursor: pointer;
-                transition: background 0.2s;
-            }
-
-            .search-result-item:hover {
-                background: #f5f5f5;
-            }
-
-            .search-result-icon {
-                font-size: 20px;
-                margin-right: 12px;
-            }
-
-            .search-result-content {
-                flex: 1;
-            }
-
-            .search-result-title {
-                font-weight: 500;
-                margin-bottom: 2px;
-                font-size: 14px;
-                color: #333;
-            }
-
-            .search-result-subtitle {
-                font-size: 12px;
-                color: #666;
-            }
-
             /* ========== CONTENT WRAPPER & ACTIVITY FEED ========== */
             .content-wrapper {
                 display: flex;
@@ -6314,47 +5463,6 @@ async function renderVPIssues() {
 
             [data-theme="dark"] td {
                 border-color: #3a3a3a;
-            }
-
-            [data-theme="dark"] .header-banner {
-                background: linear-gradient(135deg, #4d9160 0%, #3a7a50 100%);
-            }
-
-            [data-theme="dark"] .universal-search-bar {
-                background: #1a1a1a;
-                border-bottom-color: #3a3a3a;
-            }
-
-            [data-theme="dark"] .universal-search-bar .search-input {
-                background: #2a2a2a;
-                color: #e0e0e0;
-                border-color: #3a3a3a;
-            }
-
-            [data-theme="dark"] .universal-search-bar .search-input:focus {
-                border-color: #4CAF50;
-                box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
-            }
-
-            [data-theme="dark"] .search-results-dropdown {
-                background: #2a2a2a;
-                border-color: #3a3a3a;
-            }
-
-            [data-theme="dark"] .search-result-item:hover {
-                background: #3a3a3a;
-            }
-
-            [data-theme="dark"] .search-result-title {
-                color: #e0e0e0;
-            }
-
-            [data-theme="dark"] .search-result-subtitle {
-                color: #a0a0a0;
-            }
-
-            [data-theme="dark"] .search-category-title {
-                color: #a0a0a0;
             }
 
             /* ========== RESPONSIVE LAYOUT ========== */
@@ -8352,42 +7460,7 @@ window.deleteStudentPermanent = async function(studentId, studentName) {
                         showLoading();
                         const client = window.supabaseClient.getClient();
 
-                        // Delete from all related tables
-                        console.log('Deleting student from all tables:', studentId);
-
-                        // Delete from class_members table
-                        try {
-                            await client.from('class_members').delete().eq('student_id', studentId);
-                            console.log('Deleted from class_members');
-                        } catch (e) {
-                            console.log('class_members delete skipped:', e.message);
-                        }
-
-                        // Delete from attendance table
-                        try {
-                            await client.from('attendance').delete().eq('student_id', studentId);
-                            console.log('Deleted from attendance');
-                        } catch (e) {
-                            console.log('attendance delete skipped:', e.message);
-                        }
-
-                        // Delete from exam_results table
-                        try {
-                            await client.from('exam_results').delete().eq('student_id', studentId);
-                            console.log('Deleted from exam_results');
-                        } catch (e) {
-                            console.log('exam_results delete skipped:', e.message);
-                        }
-
-                        // Delete from homework_submissions table
-                        try {
-                            await client.from('homework_submissions').delete().eq('student_id', studentId);
-                            console.log('Deleted from homework_submissions');
-                        } catch (e) {
-                            console.log('homework_submissions delete skipped:', e.message);
-                        }
-
-                        // Delete the student record (main table)
+                        // Delete the student
                         const { error } = await client
                             .from('students')
                             .delete()
@@ -8396,7 +7469,7 @@ window.deleteStudentPermanent = async function(studentId, studentName) {
                         if (error) throw error;
 
                         hideLoading();
-                        showModal('Deleted', `${studentName} has been permanently deleted from the system along with all related records (attendance, exams, homework, class membership).`, 'success');
+                        showModal('Deleted', `${studentName} has been permanently deleted from the system.`, 'success');
                         renderDeleteStudent();
                     } catch (error) {
                         hideLoading();
@@ -10111,248 +9184,6 @@ async function loadShuffleHistory() {
     `;
 }
 
-// Student Promotion System
-async function renderStudentPromotion() {
-    const contentArea = document.getElementById('contentArea');
-    const client = window.supabaseClient.getClient();
-
-    // Get all students grouped by grade
-    const { data: students } = await client
-        .from('students')
-        .select('*')
-        .eq('status', 'active')
-        .order('class');
-
-    // Group students by grade
-    const studentsByGrade = {};
-    students?.forEach(student => {
-        const grade = parseInt(student.class.match(/\d+/)?.[0] || 0);
-        if (!studentsByGrade[grade]) {
-            studentsByGrade[grade] = [];
-        }
-        studentsByGrade[grade].push(student);
-    });
-
-    const grades = Object.keys(studentsByGrade).sort((a, b) => parseInt(a) - parseInt(b));
-
-    contentArea.innerHTML = `
-        <div class="card">
-            <h3>📚 Student Promotion to Next Grade</h3>
-            <p style="background: #d1ecf1; padding: 12px; border-radius: 5px; font-size: 14px; color: #0c5460; margin-bottom: 20px;">
-                ℹ️ <strong>Info:</strong> This feature promotes students to the next grade level. Students in Grade 10 cannot be promoted (graduating class).
-            </p>
-
-            <div style="max-width: 800px;">
-                <div class="form-group">
-                    <label for="promoteFromGrade">Select Grade to Promote</label>
-                    <select id="promoteFromGrade" onchange="loadGradeStudents()">
-                        <option value="">-- Select Grade --</option>
-                        ${grades.filter(g => parseInt(g) < 10).map(g =>
-                            `<option value="${g}">Grade ${g} (${studentsByGrade[g].length} students)</option>`
-                        ).join('')}
-                    </select>
-                </div>
-
-                <div id="studentsListSection" style="display: none; margin-top: 20px;">
-                    <h4>Students in Grade <span id="currentGradeDisplay"></span></h4>
-                    <p style="color: #666; margin-bottom: 15px;">
-                        Select students to promote to Grade <span id="nextGradeDisplay"></span>
-                    </p>
-
-                    <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="selectAllStudents" onchange="toggleSelectAll()" style="margin-right: 10px;">
-                            <strong>Select All Students</strong>
-                        </label>
-                    </div>
-
-                    <div id="studentsList" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 10px;">
-                    </div>
-
-                    <div style="margin-top: 20px; display: flex; gap: 10px;">
-                        <button onclick="promoteSelectedStudents()" class="btn-primary">
-                            📚 Promote Selected Students
-                        </button>
-                        <button onclick="renderStudentPromotion()" class="btn-secondary">
-                            Cancel
-                        </button>
-                    </div>
-                </div>
-
-                <div id="promotionHistory" style="margin-top: 40px;">
-                    <h4>📋 Recent Promotions</h4>
-                    <div id="promotionHistoryList">Loading...</div>
-                </div>
-            </div>
-        </div>
-    `;
-
-    // Store students data globally for use in other functions
-    window.promotionStudentsByGrade = studentsByGrade;
-
-    // Load promotion history
-    loadPromotionHistory();
-}
-
-// Load students for selected grade
-window.loadGradeStudents = function() {
-    const grade = document.getElementById('promoteFromGrade').value;
-    if (!grade) {
-        document.getElementById('studentsListSection').style.display = 'none';
-        return;
-    }
-
-    const students = window.promotionStudentsByGrade[grade] || [];
-    const nextGrade = parseInt(grade) + 1;
-
-    document.getElementById('currentGradeDisplay').textContent = grade;
-    document.getElementById('nextGradeDisplay').textContent = nextGrade;
-
-    const studentsList = document.getElementById('studentsList');
-    studentsList.innerHTML = students.map(student => `
-        <div style="padding: 10px; border-bottom: 1px solid #eee; display: flex; align-items: center;">
-            <input type="checkbox"
-                   class="student-checkbox"
-                   data-student-id="${student.id}"
-                   data-current-class="${student.class}"
-                   style="margin-right: 10px;">
-            <div style="flex: 1;">
-                <strong>${student.name}</strong> (${student.id})
-                <div style="font-size: 0.9em; color: #666;">
-                    Current: ${student.class} → New: ${nextGrade}${student.class.slice(-1)}
-                </div>
-            </div>
-        </div>
-    `).join('');
-
-    document.getElementById('studentsListSection').style.display = 'block';
-    document.getElementById('selectAllStudents').checked = false;
-};
-
-// Toggle select all
-window.toggleSelectAll = function() {
-    const selectAll = document.getElementById('selectAllStudents').checked;
-    document.querySelectorAll('.student-checkbox').forEach(checkbox => {
-        checkbox.checked = selectAll;
-    });
-};
-
-// Promote selected students
-window.promoteSelectedStudents = async function() {
-    const selectedCheckboxes = document.querySelectorAll('.student-checkbox:checked');
-
-    if (selectedCheckboxes.length === 0) {
-        showModal('Error', 'Please select at least one student to promote.', 'error');
-        return;
-    }
-
-    const currentGrade = document.getElementById('promoteFromGrade').value;
-    const nextGrade = parseInt(currentGrade) + 1;
-
-    // Prepare promotion data
-    const promotions = [];
-    selectedCheckboxes.forEach(checkbox => {
-        const studentId = parseInt(checkbox.dataset.studentId);
-        const currentClass = checkbox.dataset.currentClass;
-        const section = currentClass.slice(-1); // Get A, B, C, etc.
-        const newClass = `${nextGrade}${section}`;
-
-        promotions.push({
-            id: studentId,
-            newClass: newClass,
-            oldClass: currentClass
-        });
-    });
-
-    const confirmMsg = `You are about to promote ${promotions.length} student(s) from Grade ${currentGrade} to Grade ${nextGrade}.\n\nThis action will update their class assignments across all systems (attendance, marks, homework, etc.).\n\nDo you want to proceed?`;
-
-    if (!confirm(confirmMsg)) {
-        return;
-    }
-
-    try {
-        showLoading();
-        const client = window.supabaseClient.getClient();
-        const currentUser = window.auth.getCurrentUser();
-
-        // Update each student
-        for (const promo of promotions) {
-            const { error } = await client
-                .from('students')
-                .update({ class: promo.newClass })
-                .eq('id', promo.id);
-
-            if (error) throw error;
-        }
-
-        // Log the promotion
-        const { error: logError } = await client
-            .from('student_promotions')
-            .insert([{
-                from_grade: parseInt(currentGrade),
-                to_grade: nextGrade,
-                students_promoted: promotions.length,
-                performed_by: currentUser.username,
-                performed_at: new Date().toISOString(),
-                details: JSON.stringify(promotions)
-            }]);
-
-        if (logError) console.error('Failed to log promotion:', logError);
-
-        hideLoading();
-        showModal('Success', `Successfully promoted ${promotions.length} student(s) from Grade ${currentGrade} to Grade ${nextGrade}!`, 'success');
-
-        // Refresh the page
-        renderStudentPromotion();
-    } catch (error) {
-        hideLoading();
-        showModal('Error', `Failed to promote students: ${error.message}`, 'error');
-    }
-};
-
-// Load promotion history
-async function loadPromotionHistory() {
-    const client = window.supabaseClient.getClient();
-
-    const { data: history } = await client
-        .from('student_promotions')
-        .select('*')
-        .order('performed_at', { ascending: false })
-        .limit(10);
-
-    const historyDiv = document.getElementById('promotionHistoryList');
-
-    if (!history || history.length === 0) {
-        historyDiv.innerHTML = '<p style="color: #666;">No promotions recorded yet.</p>';
-        return;
-    }
-
-    historyDiv.innerHTML = `
-        <table style="width: 100%;">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Performed By</th>
-                    <th>From Grade</th>
-                    <th>To Grade</th>
-                    <th>Students Promoted</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${history.map(h => `
-                    <tr>
-                        <td>${new Date(h.performed_at).toLocaleString()}</td>
-                        <td>${h.performed_by}</td>
-                        <td>Grade ${h.from_grade}</td>
-                        <td>Grade ${h.to_grade}</td>
-                        <td><strong>${h.students_promoted}</strong></td>
-                    </tr>
-                `).join('')}
-            </tbody>
-        </table>
-    `;
-}
-
 // Forgot Password System
 async function renderForgotPassword() {
     const contentArea = document.getElementById('contentArea');
@@ -10853,15 +9684,14 @@ async function renderReportCards() {
                 <form id="reportCardForm" style="max-width: 600px; margin-bottom: 40px;">
                     <div class="form-group">
                         <label for="rcStudent">Select Student</label>
-                        <select id="rcStudent" required onchange="loadStudentExamResults()">
+                        <select id="rcStudent" required>
                             <option value="">-- Select Student --</option>
                             ${students?.map(s => `<option value="${s.id}">${s.name} (${s.id})</option>`).join('') || ''}
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="rcTerm">Term</label>
-                        <select id="rcTerm" required onchange="loadStudentExamResults()">
-                            <option value="">-- Select Term --</option>
+                        <select id="rcTerm" required>
                             <option value="Term 1">Term 1</option>
                             <option value="Term 2">Term 2</option>
                             <option value="Term 3">Term 3</option>
@@ -10872,17 +9702,22 @@ async function renderReportCards() {
                         <label for="rcYear">Academic Year</label>
                         <input type="text" id="rcYear" placeholder="e.g., 2024-2025" required>
                     </div>
-
-                    <div id="examResultsPreview" style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 5px; display: none;">
-                        <h5 style="margin-top: 0;">Exam Results Summary</h5>
-                        <div id="examResultsTable"></div>
-                        <div style="margin-top: 15px; font-weight: bold;">
-                            <div>Total Marks: <span id="totalMarks">-</span></div>
-                            <div>Average Percentage: <span id="avgPercentage">-</span></div>
-                            <div>Overall Grade: <span id="overallGrade">-</span></div>
-                        </div>
+                    <div class="form-group">
+                        <label for="rcPercentage">Overall Percentage</label>
+                        <input type="number" id="rcPercentage" min="0" max="100" step="0.01" placeholder="e.g., 85.5">
                     </div>
-
+                    <div class="form-group">
+                        <label for="rcGrade">Overall Grade</label>
+                        <select id="rcGrade">
+                            <option value="A+">A+</option>
+                            <option value="A">A</option>
+                            <option value="B+">B+</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
+                            <option value="D">D</option>
+                            <option value="F">F</option>
+                        </select>
+                    </div>
                     <div class="form-group">
                         <label for="rcRemarks">Remarks</label>
                         <textarea id="rcRemarks" rows="3" placeholder="Teacher's comments"></textarea>
@@ -10938,102 +9773,16 @@ async function renderReportCards() {
             }
         }
 
-        // Function to load and calculate exam results
-        window.loadStudentExamResults = async function() {
-            const studentId = document.getElementById('rcStudent').value;
-            const term = document.getElementById('rcTerm').value;
-
-            if (!studentId || !term) {
-                document.getElementById('examResultsPreview').style.display = 'none';
-                return;
-            }
-
-            try {
-                const { data: examResults } = await client
-                    .from('exam_results')
-                    .select('*')
-                    .eq('student_id', parseInt(studentId))
-                    .eq('term', term)
-                    .order('subject');
-
-                if (!examResults || examResults.length === 0) {
-                    document.getElementById('examResultsPreview').style.display = 'block';
-                    document.getElementById('examResultsTable').innerHTML = '<p style="color: #dc3545;">No exam results found for this student and term.</p>';
-                    document.getElementById('totalMarks').textContent = '-';
-                    document.getElementById('avgPercentage').textContent = '-';
-                    document.getElementById('overallGrade').textContent = '-';
-                    return;
-                }
-
-                // Build results table
-                let tableHTML = '<table style="width: 100%; font-size: 0.9em;"><thead><tr><th>Subject</th><th>Marks</th><th>Total</th><th>%</th></tr></thead><tbody>';
-                let totalMarks = 0;
-                let totalMaxMarks = 0;
-
-                examResults.forEach(result => {
-                    const marks = result.marks || 0;
-                    const maxMarks = result.total_marks || 100;
-                    const percentage = ((marks / maxMarks) * 100).toFixed(2);
-
-                    totalMarks += marks;
-                    totalMaxMarks += maxMarks;
-
-                    tableHTML += `<tr>
-                        <td>${result.subject}</td>
-                        <td>${marks}</td>
-                        <td>${maxMarks}</td>
-                        <td>${percentage}%</td>
-                    </tr>`;
-                });
-
-                tableHTML += '</tbody></table>';
-
-                // Calculate overall percentage
-                const avgPercentage = ((totalMarks / totalMaxMarks) * 100).toFixed(2);
-
-                // Calculate grade
-                let grade = 'F';
-                if (avgPercentage >= 90) grade = 'A+';
-                else if (avgPercentage >= 80) grade = 'A';
-                else if (avgPercentage >= 70) grade = 'B+';
-                else if (avgPercentage >= 60) grade = 'B';
-                else if (avgPercentage >= 50) grade = 'C';
-                else if (avgPercentage >= 40) grade = 'D';
-
-                // Update preview
-                document.getElementById('examResultsPreview').style.display = 'block';
-                document.getElementById('examResultsTable').innerHTML = tableHTML;
-                document.getElementById('totalMarks').textContent = `${totalMarks} / ${totalMaxMarks}`;
-                document.getElementById('avgPercentage').textContent = `${avgPercentage}%`;
-                document.getElementById('overallGrade').textContent = grade;
-
-                // Store for form submission
-                window.reportCardCalculated = {
-                    percentage: parseFloat(avgPercentage),
-                    grade: grade
-                };
-
-            } catch (error) {
-                console.error('Error loading exam results:', error);
-            }
-        };
-
         // Form submit handler
         document.getElementById('reportCardForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            if (!window.reportCardCalculated) {
-                showModal('Error', 'Please select a student and term to calculate results first.', 'error');
-                return;
-            }
-
-            const studentId = parseInt(document.getElementById('rcStudent').value);
             const reportCardData = {
-                student_id: studentId,
+                student_id: parseInt(document.getElementById('rcStudent').value),
                 term: document.getElementById('rcTerm').value,
                 academic_year: document.getElementById('rcYear').value,
-                overall_percentage: window.reportCardCalculated.percentage,
-                overall_grade: window.reportCardCalculated.grade,
+                overall_percentage: parseFloat(document.getElementById('rcPercentage').value) || null,
+                overall_grade: document.getElementById('rcGrade').value,
                 remarks: document.getElementById('rcRemarks').value || null
             };
 
@@ -11044,23 +9793,6 @@ async function renderReportCards() {
                     .insert([reportCardData]);
 
                 if (error) throw error;
-
-                // Notify parent
-                const { data: student } = await client
-                    .from('students')
-                    .select('parent_id, name')
-                    .eq('id', studentId)
-                    .maybeSingle();
-
-                if (student && student.parent_id) {
-                    await createNotification(
-                        student.parent_id,
-                        'Report Card Ready',
-                        `${reportCardData.term} report card for ${student.name} is ready - ${reportCardData.overall_percentage}% (${reportCardData.overall_grade})`,
-                        'success',
-                        '📄'
-                    );
-                }
 
                 hideLoading();
                 showModal('Success', 'Report card generated successfully!', 'success');
@@ -11792,52 +10524,51 @@ function initNewUIFeatures() {
 // ========== GLOBAL SEARCH FUNCTIONALITY ==========
 let searchDebounceTimer;
 
+document.getElementById('searchToggle')?.addEventListener('click', openGlobalSearch);
+document.getElementById('searchCloseBtn')?.addEventListener('click', closeGlobalSearch);
 document.getElementById('searchInput')?.addEventListener('input', handleSearchInput);
-document.getElementById('searchInput')?.addEventListener('focus', function() {
-    const query = this.value.trim();
-    if (query.length >= 2) {
-        document.getElementById('searchResults').classList.remove('hidden');
+
+// Click outside to close
+document.getElementById('searchOverlay')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeGlobalSearch();
     }
 });
 
-// Click outside to close search results
-document.addEventListener('click', function(e) {
-    const searchContainer = document.querySelector('.search-container');
-    const searchResults = document.getElementById('searchResults');
-    if (searchContainer && !searchContainer.contains(e.target)) {
-        searchResults.classList.add('hidden');
-    }
-});
-
-// ESC key to close search results
+// ESC key to close
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
-        const searchResults = document.getElementById('searchResults');
-        if (searchResults && !searchResults.classList.contains('hidden')) {
-            searchResults.classList.add('hidden');
-            document.getElementById('searchInput').blur();
+        const searchOverlay = document.getElementById('searchOverlay');
+        if (searchOverlay && !searchOverlay.classList.contains('hidden')) {
+            closeGlobalSearch();
         }
     }
 });
 
+function openGlobalSearch() {
+    const searchOverlay = document.getElementById('searchOverlay');
+    const searchInput = document.getElementById('searchInput');
+
+    searchOverlay.classList.remove('hidden');
+    searchInput.focus();
+    searchInput.value = '';
+    document.getElementById('searchResults').innerHTML = '<div class="search-empty">Type to search across all data...</div>';
+}
+
+function closeGlobalSearch() {
+    const searchOverlay = document.getElementById('searchOverlay');
+    searchOverlay.classList.add('hidden');
+}
+
 function handleSearchInput(e) {
     const query = e.target.value.trim();
-    const searchResults = document.getElementById('searchResults');
 
     clearTimeout(searchDebounceTimer);
 
     if (query.length < 2) {
-        searchResults.innerHTML = '<div class="search-empty">Type at least 2 characters to search...</div>';
-        if (query.length === 0) {
-            searchResults.classList.add('hidden');
-        } else {
-            searchResults.classList.remove('hidden');
-        }
+        document.getElementById('searchResults').innerHTML = '<div class="search-empty">Type at least 2 characters to search...</div>';
         return;
     }
-
-    // Show results dropdown
-    searchResults.classList.remove('hidden');
 
     // Debounce search
     searchDebounceTimer = setTimeout(() => {
@@ -13120,8 +11851,8 @@ async function performBulkUpload(validStudents) {
 
 window.downloadExcelTemplate = function() {
     const csvContent = `Student Name,Registration ID,Date of Birth,Gender,Guardian Name,Contact Number,Email,Address,Class,Section
-Rahul Kumar,STU006001,15-03-2012,M,Rajesh Kumar,9876543210,rahul@email.com,123 Main St,6A,A
-Priya Singh,,20-05-2012,F,Amit Singh,9876543211,priya@email.com,456 Park Ave,6A,A
+Rahul Kumar,STU006001,2012-03-15,M,Rajesh Kumar,9876543210,rahul@email.com,123 Main St,6A,A
+Priya Singh,,2012-05-20,F,Amit Singh,9876543211,priya@email.com,456 Park Ave,6A,A
 (Add your students here - delete example rows)`;
 
     downloadFile(csvContent, 'Student_Upload_Template_Grade6.csv', 'text/csv');
@@ -13136,7 +11867,7 @@ window.showTemplateSample = function() {
             <strong>Required Columns:</strong><br>
             1. Student Name (Required)<br>
             2. Registration ID (Optional - auto-generated if blank)<br>
-            3. Date of Birth (Format: DD-MM-YYYY or YYYY-MM-DD)<br>
+            3. Date of Birth (Format: YYYY-MM-DD)<br>
             4. Gender (M/F/Other)<br>
             5. Guardian Name<br>
             6. Contact Number (10 digits)<br>
@@ -13146,7 +11877,7 @@ window.showTemplateSample = function() {
             10. Section (A/B/C)<br>
             <br>
             <strong>Example Row:</strong><br>
-            Rahul Kumar, STU006001, 15-03-2012, M, Rajesh Kumar, 9876543210, rahul@email.com, 123 Main St, 6A, A
+            Rahul Kumar, STU006001, 2012-03-15, M, Rajesh Kumar, 9876543210, rahul@email.com, 123 Main St, 6A, A
         </div>
         `,
         'info'
@@ -13846,35 +12577,6 @@ function renderPrincipalAnalytics() {
                 <div class="grade-item grade-d">
                     <div class="grade-label">D</div>
                     <div class="grade-bar" style="width: 2%">2%</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Teacher Performance Ratings -->
-        <div class="card">
-            <h3>⭐ Teacher Performance Ratings</h3>
-            <p style="background: #fff3cd; padding: 12px; border-radius: 5px; font-size: 14px; color: #856404; margin-bottom: 20px;">
-                ℹ️ <strong>Coming Soon:</strong> Teacher rating system needs to be implemented first. This section will display average ratings per teacher once the rating feature is added to the system.
-            </p>
-            <div style="color: #666;">
-                <p><strong>Planned Features:</strong></p>
-                <ul style="margin: 10px 0; padding-left: 20px;">
-                    <li>Average rating per teacher (1-5 stars)</li>
-                    <li>Student feedback and reviews</li>
-                    <li>Performance trends over time</li>
-                    <li>Subject-wise teacher rankings</li>
-                </ul>
-                <p style="margin-top: 15px;"><strong>Required Database Table:</strong></p>
-                <div style="background: #f8f9fa; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 0.9em; margin-top: 10px;">
-                    CREATE TABLE teacher_ratings (<br>
-                    &nbsp;&nbsp;id SERIAL PRIMARY KEY,<br>
-                    &nbsp;&nbsp;teacher_id INTEGER,<br>
-                    &nbsp;&nbsp;student_id INTEGER,<br>
-                    &nbsp;&nbsp;rating INTEGER (1-5),<br>
-                    &nbsp;&nbsp;subject TEXT,<br>
-                    &nbsp;&nbsp;feedback TEXT,<br>
-                    &nbsp;&nbsp;created_at TIMESTAMP<br>
-                    );
                 </div>
             </div>
         </div>
