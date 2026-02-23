@@ -1,44 +1,44 @@
 const { chromium } = require('playwright');
 const path = require('path');
 
-// User credentials for different roles
+// User credentials for different roles (LIMITED TO 3 KEY TABS FOR FASTER RECORDING)
 const users = [
     {
         role: 'Parent',
         username: 'P3240504A',
         password: 'parent123',
-        tabs: ['home', 'attendance', 'viewhomework', 'viewexamresults', 'timetable']
+        tabs: ['home', 'attendance', 'viewhomework']
     },
     {
         role: 'Student',
         username: 'S3240504A',
         password: 'student123',
-        tabs: ['home', 'attendance', 'viewhomework', 'viewexamresults', 'examschedule', 'timetable']
+        tabs: ['home', 'attendance', 'viewexamresults']
     },
     {
         role: 'Teacher',
         username: 'T001',
         password: 'teacher123',
-        tabs: ['home', 'attendance', 'homework', 'marksworkflow', 'schedule', 'issues']
+        tabs: ['home', 'attendance', 'marksworkflow']
     },
     {
         role: 'Coordinator',
         username: 'C001',
         password: 'coordinator123',
-        tabs: ['home', 'ccacalendar', 'timetablemanagement', 'exams', 'issues']
+        tabs: ['home', 'ccacalendar', 'exams']
     },
     {
         role: 'VP',
         username: 'VP001',
         password: 'vp123',
-        tabs: ['home', 'registration', 'classstructure', 'holidays', 'examschedule', 'issues']
+        tabs: ['home', 'registration', 'classstructure']
     }
 ];
 
 async function recordDashboard(user) {
     const browser = await chromium.launch({
-        headless: false, // Show browser for debugging
-        slowMo: 500 // Slow down actions for better visibility
+        headless: false,
+        slowMo: 300 // Faster: 300ms delay between actions
     });
 
     const context = await browser.newContext({
@@ -52,93 +52,191 @@ async function recordDashboard(user) {
     const page = await context.newPage();
 
     try {
-        console.log(`\n🎬 Recording demo for: ${user.role}`);
+        console.log(`\n${'='.repeat(60)}`);
+        console.log(`🎬 Recording demo for: ${user.role.toUpperCase()}`);
         console.log(`   Username: ${user.username}`);
+        console.log(`${'='.repeat(60)}`);
 
-        // Navigate to the dashboard
-        await page.goto('http://localhost:8000/dashboard.html', {
-            waitUntil: 'networkidle',
+        // Step 1: Navigate to landing page
+        console.log(`\n📄 Step 1: Loading landing page...`);
+        await page.goto('http://localhost:8000/index.html', {
+            waitUntil: 'domcontentloaded',
             timeout: 30000
         });
+        await page.waitForTimeout(800);
+        console.log(`   ✅ Landing page loaded`);
 
-        // Wait for login page to load
-        await page.waitForSelector('#loginUsername', { timeout: 10000 });
+        // Step 2: Click "Get Started" button to open login modal
+        console.log(`\n🖱️  Step 2: Clicking "Get Started" button...`);
+        await page.click('button.btn-primary-hero');
+        await page.waitForTimeout(600);
 
-        // Fill in login credentials
-        await page.fill('#loginUsername', user.username);
-        await page.waitForTimeout(500);
-        await page.fill('#loginPassword', user.password);
-        await page.waitForTimeout(500);
-
-        // Click login button
-        await page.click('#loginBtn');
-        console.log(`   ✅ Logged in as ${user.role}`);
-
-        // Wait for dashboard to load
-        await page.waitForSelector('.main-content', { timeout: 10000 });
-        await page.waitForTimeout(2000);
-
-        // Navigate through different tabs
-        for (const tab of user.tabs) {
-            console.log(`   📱 Opening tab: ${tab}`);
-
-            // Click the tab
-            const tabSelector = `button[data-tab="${tab}"]`;
-            await page.click(tabSelector);
-
-            // Wait for content to load
-            await page.waitForTimeout(3000);
-
-            // Scroll down to show content
-            await page.evaluate(() => {
-                window.scrollTo({ top: 300, behavior: 'smooth' });
-            });
-            await page.waitForTimeout(1500);
-
-            // Scroll back up
-            await page.evaluate(() => {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            });
-            await page.waitForTimeout(1500);
-        }
-
-        // Test search functionality
-        console.log(`   🔍 Testing search functionality`);
-        await page.fill('#searchInput', 'student');
-        await page.waitForTimeout(2000);
-
-        // Clear search
-        await page.fill('#searchInput', '');
+        // Wait for login modal to be visible
+        await page.waitForSelector('#loginModal.active', { timeout: 5000 });
+        console.log(`   ✅ Login modal opened`);
         await page.waitForTimeout(1000);
 
-        // Navigate back to home
-        await page.click('button[data-tab="home"]');
-        await page.waitForTimeout(2000);
+        // Step 3: Enter username
+        console.log(`\n⌨️  Step 3: Entering username: ${user.username}`);
+        await page.click('#username');
+        await page.waitForTimeout(500);
+        await page.type('#username', user.username, { delay: 100 });
+        await page.waitForTimeout(1000);
+        console.log(`   ✅ Username entered`);
 
-        console.log(`   ✅ Recording complete for ${user.role}`);
+        // Step 4: Enter password
+        console.log(`\n🔑 Step 4: Entering password...`);
+        await page.click('#password');
+        await page.waitForTimeout(500);
+        await page.type('#password', user.password, { delay: 100 });
+        await page.waitForTimeout(1000);
+        console.log(`   ✅ Password entered`);
+
+        // Step 5: Click login button
+        console.log(`\n👆 Step 5: Clicking Login button...`);
+        await page.click('button.btn-login[type="submit"]');
+        console.log(`   ✅ Login button clicked`);
+
+        // Step 6: Wait for navigation to dashboard
+        console.log(`\n⏳ Step 6: Waiting for dashboard to load...`);
+        await page.waitForURL('**/dashboard.html', { timeout: 20000 });
+        console.log(`   ✅ Navigated to dashboard`);
+
+        // Wait for dashboard UI to fully load
+        await page.waitForSelector('.sidebar', { timeout: 10000 });
+        await page.waitForSelector('.main-content', { timeout: 10000 });
+        await page.waitForTimeout(1000);
+        console.log(`   ✅ Dashboard UI loaded`);
+
+        // Step 7: Navigate through sidebar menu items
+        console.log(`\n📱 Step 7: Navigating through ${user.tabs.length} menu items...`);
+
+        for (let i = 0; i < user.tabs.length; i++) {
+            const tab = user.tabs[i];
+            console.log(`\n   [${i + 1}/${user.tabs.length}] 📋 Clicking menu: "${tab}"`);
+
+            const tabSelector = `button.menu-link[data-tab="${tab}"]`;
+
+            try {
+                // Wait for menu item to be available
+                await page.waitForSelector(tabSelector, { state: 'visible', timeout: 5000 });
+
+                // Scroll sidebar to bring menu item into view
+                await page.evaluate((selector) => {
+                    const element = document.querySelector(selector);
+                    if (element) {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, tabSelector);
+                await page.waitForTimeout(500);
+
+                // Highlight the menu item (optional visual feedback)
+                await page.evaluate((selector) => {
+                    const element = document.querySelector(selector);
+                    if (element) {
+                        element.style.border = '2px solid #FFD700';
+                    }
+                }, tabSelector);
+                await page.waitForTimeout(300);
+
+                // Click the menu item
+                await page.click(tabSelector);
+                console.log(`       ✅ Clicked "${tab}"`);
+                await page.waitForTimeout(1000);
+
+                // Remove highlight
+                await page.evaluate((selector) => {
+                    const element = document.querySelector(selector);
+                    if (element) {
+                        element.style.border = '';
+                    }
+                }, tabSelector);
+
+                // Wait for content to load
+                await page.waitForTimeout(800);
+
+                // Scroll down in content area to show data
+                console.log(`       📜 Scrolling content...`);
+                await page.evaluate(() => {
+                    const contentArea = document.querySelector('.content-area');
+                    if (contentArea) {
+                        contentArea.scrollTo({ top: 300, behavior: 'smooth' });
+                    }
+                });
+                await page.waitForTimeout(600);
+
+                // Scroll down more
+                await page.evaluate(() => {
+                    const contentArea = document.querySelector('.content-area');
+                    if (contentArea) {
+                        contentArea.scrollTo({ top: 600, behavior: 'smooth' });
+                    }
+                });
+                await page.waitForTimeout(600);
+
+                // Scroll back to top
+                await page.evaluate(() => {
+                    const contentArea = document.querySelector('.content-area');
+                    if (contentArea) {
+                        contentArea.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                });
+                await page.waitForTimeout(1000);
+
+                console.log(`       ✅ Content displayed for "${tab}"`);
+
+            } catch (error) {
+                console.log(`       ⚠️  Could not access tab "${tab}": ${error.message}`);
+            }
+        }
+
+        // Step 8: Test search functionality
+        console.log(`\n🔍 Step 8: Testing search functionality...`);
+        const searchInput = await page.$('#searchInput');
+        if (searchInput) {
+            await page.click('#searchInput');
+            await page.waitForTimeout(500);
+            await page.type('#searchInput', 'student', { delay: 150 });
+            await page.waitForTimeout(800);
+            console.log(`   ✅ Search tested`);
+
+            // Clear search
+            await page.fill('#searchInput', '');
+            await page.waitForTimeout(1000);
+        }
+
+        // Step 9: Return to home
+        console.log(`\n🏠 Step 9: Returning to home...`);
+        await page.click('button.menu-link[data-tab="home"]');
+        await page.waitForTimeout(800);
+        console.log(`   ✅ Back to home`);
+
+        console.log(`\n${'='.repeat(60)}`);
+        console.log(`✅ RECORDING COMPLETE FOR ${user.role.toUpperCase()}`);
+        console.log(`${'='.repeat(60)}`);
 
     } catch (error) {
-        console.error(`   ❌ Error recording ${user.role}:`, error.message);
+        console.error(`\n❌ ERROR recording ${user.role}:`);
+        console.error(`   ${error.message}`);
+        console.error(`\n   Stack trace:`);
+        console.error(`   ${error.stack}`);
     } finally {
         // Close context to save video
         await context.close();
 
-        // Get video path
+        // Get video path and rename
         const video = page.video();
         if (video) {
             const videoPath = await video.path();
-            console.log(`   💾 Video saved to: ${videoPath}`);
-
-            // Rename video to user role
             const fs = require('fs');
             const newPath = path.join('./videos', `${user.role.toLowerCase()}-demo.webm`);
 
-            // Wait a bit for video to be finalized
+            // Wait for video to be finalized
             await new Promise(resolve => setTimeout(resolve, 2000));
 
             if (fs.existsSync(videoPath)) {
                 fs.renameSync(videoPath, newPath);
-                console.log(`   📹 Renamed to: ${newPath}`);
+                console.log(`\n💾 Video saved: ${newPath}`);
             }
         }
 
@@ -147,34 +245,44 @@ async function recordDashboard(user) {
 }
 
 async function main() {
-    console.log('🎥 CampusCore Dashboard Demo Recording');
-    console.log('=======================================\n');
-    console.log('⚠️  IMPORTANT: Make sure the local server is running on http://localhost:8000\n');
+    console.log('\n' + '='.repeat(70));
+    console.log('🎥 CAMPUSCORE DASHBOARD - AUTOMATED VIDEO RECORDING');
+    console.log('='.repeat(70));
+    console.log('\n⚠️  IMPORTANT: Make sure the local server is running!');
+    console.log('   Command: npm run server\n');
+    console.log(`📹 Recording ${users.length} user roles with full interaction`);
+    console.log('   - Login flow (Get Started → Username → Password → Login)');
+    console.log('   - All sidebar menu navigation');
+    console.log('   - Content scrolling');
+    console.log('   - Search functionality\n');
     console.log('Starting in 3 seconds...\n');
 
     await new Promise(resolve => setTimeout(resolve, 3000));
 
-    // Create videos directory if it doesn't exist
+    // Create videos directory
     const fs = require('fs');
     if (!fs.existsSync('./videos')) {
         fs.mkdirSync('./videos');
     }
 
-    // Record each user role sequentially
-    for (const user of users) {
-        await recordDashboard(user);
-        console.log('\n   ⏸️  Pausing 2 seconds before next recording...\n');
-        await new Promise(resolve => setTimeout(resolve, 2000));
+    // Record each user role
+    for (let i = 0; i < users.length; i++) {
+        await recordDashboard(users[i]);
+
+        if (i < users.length - 1) {
+            console.log(`\n⏸️  Pausing 3 seconds before next recording...\n`);
+            await new Promise(resolve => setTimeout(resolve, 3000));
+        }
     }
 
-    console.log('\n✅ All recordings complete!');
-    console.log('📁 Videos saved in ./videos/ directory');
-    console.log('\nVideos created:');
-    console.log('  - parent-demo.webm');
-    console.log('  - student-demo.webm');
-    console.log('  - teacher-demo.webm');
-    console.log('  - coordinator-demo.webm');
-    console.log('  - vp-demo.webm');
+    console.log('\n' + '='.repeat(70));
+    console.log('✅ ALL RECORDINGS COMPLETE!');
+    console.log('='.repeat(70));
+    console.log('\n📁 Videos saved in ./videos/ directory:\n');
+    users.forEach(user => {
+        console.log(`   📹 ${user.role.toLowerCase()}-demo.webm`);
+    });
+    console.log('\n' + '='.repeat(70));
 }
 
 main().catch(console.error);
