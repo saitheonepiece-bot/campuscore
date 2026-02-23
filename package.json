@@ -1,0 +1,28 @@
+{
+  "name": "campuscore",
+  "version": "1.0.0",
+  "description": "A comprehensive school management system built for DPS Nadergul, featuring role-based access, attendance tracking, homework management, exam scheduling, and more.",
+  "main": "NEW-VP-FEATURES-PART2.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "server": "node start-server.js",
+    "record": "node record-demos.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/saitheonepiece-bot/campuscore.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/saitheonepiece-bot/campuscore/issues"
+  },
+  "homepage": "https://github.com/saitheonepiece-bot/campuscore#readme",
+  "devDependencies": {
+    "playwright": "^1.58.2"
+  }
+}
