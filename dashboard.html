@@ -130,6 +130,9 @@
 <!-- Load Supabase from CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+<!-- Load jsPDF for PDF generation -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 <!-- Load application scripts -->
 <script src="assets/js/supabase-client.js"></script>
 <script src="assets/js/auth.js"></script>
@@ -201,15 +204,13 @@ const menuItems = {
     { id: 'classmanagement', icon: '🏫', label: 'Class Management' },
     { id: 'timetablemanagement', icon: '🗓️', label: 'Timetable Management' },
     { id: 'examschedule', icon: '📝', label: 'Exam Schedule' },
-    { id: 'bulkupload', icon: '📤', label: 'New Students Upload' },
+    { id: 'studentup', icon: '⬆️', label: 'Student UP' },
     { id: 'appointteacher', icon: '👨‍🏫', label: 'Appoint Teacher' },
     { id: 'assignduties', icon: '📋', label: 'Assign Duties' },
     { id: 'vpissues', icon: '⚠️', label: 'Issues' },
     { id: 'attendanceanalytics', icon: '📈', label: 'Attendance Analytics' },
     { id: 'performanceanalytics', icon: '🎯', label: 'Performance Analytics' },
     { id: 'studentanalysis', icon: '👥', label: 'Student Analysis' },
-    { id: 'shufflestudents', icon: '🔀', label: 'Shuffle Students' },
-    { id: 'promotion', icon: '📚', label: 'Student Promotion' },
     { id: 'removestudent', icon: '🚫', label: 'Remove Student' },
     { id: 'deletestudent', icon: '❌', label: 'Delete Student' },
     { id: 'manageparents', icon: '👨‍👩‍👧', label: 'Manage Parents' },
@@ -224,7 +225,7 @@ const menuItems = {
         { id: 'classmanagement', icon: '🏫', label: 'Class Management' },
         { id: 'timetablemanagement', icon: '🗓️', label: 'Timetable Management' },
         { id: 'examschedule', icon: '📝', label: 'Exam Schedule' },
-        { id: 'bulkupload', icon: '📤', label: 'New Students Upload' },
+        { id: 'studentup', icon: '⬆️', label: 'Student UP' },
         { id: 'appointteacher', icon: '👨‍🏫', label: 'Appoint Teacher' },
         { id: 'assignduties', icon: '📋', label: 'Assign Duties' },
         { id: 'svpissues', icon: '⚠️', label: 'Issues' },
@@ -232,8 +233,6 @@ const menuItems = {
         { id: 'attendanceanalytics', icon: '📈', label: 'Attendance Analytics' },
         { id: 'performanceanalytics', icon: '🎯', label: 'Performance Analytics' },
         { id: 'studentanalysis', icon: '👥', label: 'Student Analysis' },
-        { id: 'shufflestudents', icon: '🔀', label: 'Shuffle Students' },
-        { id: 'promotion', icon: '📚', label: 'Student Promotion' },
         { id: 'removestudent', icon: '🚫', label: 'Remove Student' },
         { id: 'deletestudent', icon: '❌', label: 'Delete Student' },
         { id: 'manageparents', icon: '👨‍👩‍👧', label: 'Manage Parents' },
@@ -924,11 +923,8 @@ function renderTab(tabId) {
         case 'manageparents':
             renderManageParents();
             break;
-        case 'shufflestudents':
-            renderShuffleStudents();
-            break;
-        case 'promotion':
-            renderStudentPromotion();
+        case 'studentup':
+            renderStudentUP();
             break;
         case 'analytics':
             renderAnalytics();
@@ -949,11 +945,6 @@ function renderTab(tabId) {
         case 'ctmanagetimetable':
             renderCTManageTimetable();
             break;
-        // PROMPT 2 - NEW CODE: Bulk Upload tab
-        case 'bulkupload':
-            renderBulkUpload();
-            break;
-        // END PROMPT 2 - NEW CODE
         // PROMPT 3 - NEW CODE: Analytics and Dashboard tabs
         case 'issuesdashboard':
             renderIssuesDashboard();
@@ -1058,6 +1049,15 @@ async function renderHomeDashboard() {
 
         // Update with actual data
         contentArea.innerHTML = `
+            <!-- School Photo Hero Section -->
+            <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center; padding: 40px 20px; margin-bottom: 25px;">
+                <div style="max-width: 800px; margin: 0 auto;">
+                    <img src="logo.png" alt="Delhi Public School Nadergul" style="width: 120px; height: 120px; border-radius: 50%; border: 4px solid white; box-shadow: 0 5px 20px rgba(0,0,0,0.3); margin-bottom: 20px; background: white; padding: 10px;">
+                    <h1 style="margin: 0 0 10px 0; font-size: 2.2em;">Delhi Public School, Nadergul</h1>
+                    <p style="font-size: 1.2em; opacity: 0.95; margin: 0;">Excellence in Education | Empowering Future Leaders</p>
+                </div>
+            </div>
+
             <div class="card">
                 <h3>Welcome, ${currentUser.name}!</h3>
                 <p>You are logged in as <strong>${formatRole(currentUser.role)}</strong></p>
@@ -1090,6 +1090,28 @@ async function renderHomeDashboard() {
                     </div>
                 </div>
                 <!-- END PROMPT 1 - NEW CODE -->
+            </div>
+
+            <!-- About the Founders Section -->
+            <div class="card" style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 30px; margin-bottom: 25px;">
+                <h3 style="text-align: center; color: #2c3e50; margin-bottom: 25px; font-size: 1.8em;">About the Founders</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; max-width: 900px; margin: 0 auto;">
+                    <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center;">
+                        <div style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 2.5em; color: white; font-weight: bold;">A</div>
+                        <h4 style="margin: 0 0 8px 0; color: #2c3e50; font-size: 1.4em;">Ashwath</h4>
+                        <p style="color: #667eea; font-weight: 600; margin: 0 0 12px 0;">Main Developer & Founder</p>
+                        <p style="color: #555; line-height: 1.6; font-size: 0.95em;">As the lead developer, Ashwath built CampusCore from the ground up, creating a powerful platform to solve real challenges like messy WhatsApp groups, missing attendance records, and complicated school communication.</p>
+                    </div>
+                    <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center;">
+                        <div style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 2.5em; color: white; font-weight: bold;">SC</div>
+                        <h4 style="margin: 0 0 8px 0; color: #2c3e50; font-size: 1.4em;">Sai Charan</h4>
+                        <p style="color: #f5576c; font-weight: 600; margin: 0 0 12px 0;">Co-Founder & UX Designer</p>
+                        <p style="color: #555; line-height: 1.6; font-size: 0.95em;">Sai Charan focuses on making CampusCore easy and intuitive to use, designing user experiences and presenting the platform at school events and in promotional videos.</p>
+                    </div>
+                </div>
+                <div style="text-align: center; margin-top: 25px; padding: 20px; background: rgba(255,255,255,0.7); border-radius: 10px;">
+                    <p style="color: #2c3e50; font-size: 1.1em; line-height: 1.7; margin: 0;"><strong>Both students of DPS Nadergul</strong>, Ashwath and Sai Charan created CampusCore specifically for their school community. Their mission: to transform how students, teachers, and parents stay connected and organized.</p>
+                </div>
             </div>
 
             <div class="card">
@@ -1648,8 +1670,13 @@ async function renderViewReportCards() {
                 ${reportCards && reportCards.length > 0 ? `
                     <div style="margin-top: 20px;">
                         ${reportCards.map(card => `
-                            <div style="border: 1px solid #ddd; padding: 20px; margin-bottom: 20px; border-radius: 8px; background: #f9f9f9;">
-                                <h4 style="margin-top: 0;">${card.term} - ${card.academic_year}</h4>
+                            <div style="border: 1px solid #ddd; padding: 20px; margin-bottom: 20px; border-radius: 8px; background: #f9f9f9;" id="report-card-${card.id}">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                    <h4 style="margin: 0;">${card.term} - ${card.academic_year}</h4>
+                                    <button class="btn-primary" onclick="downloadReportCardPDF(${card.id}, '${student?.name}', '${student?.class}', '${card.term}', '${card.academic_year}', ${card.overall_percentage}, '${card.overall_grade}', '${card.remarks || ''}', '${new Date(card.created_at).toLocaleDateString()}')" style="padding: 8px 16px;">
+                                        📥 Download PDF
+                                    </button>
+                                </div>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
                                     <div>
                                         <strong>Overall Percentage:</strong>
@@ -8640,6 +8667,428 @@ window.deleteParent = async function(parentId, parentName) {
     }
 };
 
+// STUDENT UP - Unified student management feature with bulk upload, promotion and shuffling
+async function renderStudentUP() {
+    const contentArea = document.getElementById('contentArea');
+    const client = window.supabaseClient.getClient();
+
+    contentArea.innerHTML = `
+        <div class="card" style="background: linear-gradient(135deg, #ffffff 0%, #f0f8ff 100%);">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 25px; border-radius: 15px; margin-bottom: 25px; box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);">
+                <h3 style="color: white; margin: 0; font-size: 1.8em; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.5em;">⬆️</span>
+                    Student UP - Complete Student Management System
+                </h3>
+                <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 1.05em;">
+                    Bulk upload new students, promote existing students, and shuffle sections - all in one place
+                </p>
+            </div>
+
+            <!-- PIN Protection -->
+            <div id="pinSection" style="padding: 30px; background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); border-radius: 12px; margin-bottom: 25px; border: 2px solid #ffc107;">
+                <h4 style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.5em;">🔐</span>
+                    Authorization Required
+                </h4>
+                <p style="color: #856404; margin-bottom: 20px;">
+                    This feature requires administrator PIN (AP123) to prevent unauthorized access.
+                </p>
+                <div style="max-width: 400px;">
+                    <div class="form-group">
+                        <label for="studentUpPin">Enter Admin PIN</label>
+                        <input type="password" id="studentUpPin" placeholder="Enter AP123" maxlength="10" style="font-size: 1.2em; letter-spacing: 2px;">
+                    </div>
+                    <button class="btn-primary" onclick="verifyStudentUpPin()" style="padding: 12px 30px;">
+                        🔓 Unlock & Continue
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main Content (Hidden until PIN verified) -->
+            <div id="studentUpContent" style="display: none;">
+
+                <!-- Tab Navigation -->
+                <div style="display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px;">
+                    <button class="btn-filter active" id="tab-upload" onclick="switchStudentUpTab('upload')" style="flex: 1; padding: 12px;">
+                        📤 Bulk Upload
+                    </button>
+                    <button class="btn-filter" id="tab-promote" onclick="switchStudentUpTab('promote')" style="flex: 1; padding: 12px;">
+                        📚 Promote Students
+                    </button>
+                    <button class="btn-filter" id="tab-shuffle" onclick="switchStudentUpTab('shuffle')" style="flex: 1; padding: 12px;">
+                        🔀 Shuffle Sections
+                    </button>
+                </div>
+
+                <!-- Tab Content -->
+                <div id="tabContent"></div>
+            </div>
+        </div>
+    `;
+
+    // Show upload tab by default when unlocked
+    window.currentStudentUpTab = 'upload';
+}
+
+// Verify Student UP PIN
+window.verifyStudentUpPin = function() {
+    const pin = document.getElementById('studentUpPin').value.trim();
+
+    if (pin === 'AP123') {
+        document.getElementById('pinSection').style.display = 'none';
+        document.getElementById('studentUpContent').style.display = 'block';
+        showModal('Success', 'Access granted! You can now manage students.', 'success');
+        switchStudentUpTab('upload'); // Show first tab
+    } else {
+        showModal('Error', 'Invalid PIN! Please enter AP123 to access this feature.', 'error');
+        document.getElementById('studentUpPin').value = '';
+    }
+};
+
+// Switch between tabs
+window.switchStudentUpTab = function(tab) {
+    // Update active button
+    ['upload', 'promote', 'shuffle'].forEach(t => {
+        const btn = document.getElementById(`tab-${t}`);
+        if (btn) {
+            if (t === tab) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        }
+    });
+
+    window.currentStudentUpTab = tab;
+    const tabContent = document.getElementById('tabContent');
+
+    if (tab === 'upload') {
+        renderBulkUploadTab(tabContent);
+    } else if (tab === 'promote') {
+        renderPromoteTab(tabContent);
+    } else if (tab === 'shuffle') {
+        renderShuffleTab(tabContent);
+    }
+};
+
+// Render Bulk Upload Tab
+async function renderBulkUploadTab(container) {
+    container.innerHTML = `
+        <div class="card" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border: 2px solid #2196f3;">
+            <h4 style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 1.5em;">📤</span>
+                Bulk Upload New Grade 6 Students
+            </h4>
+            <p style="color: #1565c0; margin-bottom: 20px;">
+                Upload multiple Grade 6 students at once using Excel or CSV file
+            </p>
+
+            <!-- Step 1: Download Template -->
+            <div class="upload-step" style="margin-bottom: 25px; background: white; padding: 20px; border-radius: 10px;">
+                <h5>Step 1: Download Template</h5>
+                <p style="color: #666; margin-bottom: 15px;">Download the Excel template with required column format</p>
+                <div class="btn-group">
+                    <button class="btn-primary" onclick="downloadExcelTemplate()">📥 Download Excel Template</button>
+                    <button class="btn-secondary" onclick="showTemplateSample()">📋 View Sample</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Upload File -->
+            <div class="upload-step" style="margin-bottom: 25px; background: white; padding: 20px; border-radius: 10px;">
+                <h5>Step 2: Upload Your File</h5>
+                <div class="upload-dropzone" id="uploadDropzone" style="border: 2px dashed #5ca870; padding: 40px; text-align: center; border-radius: 12px; background: #f8fdf9;">
+                    <div class="upload-icon" style="font-size: 3em; margin-bottom: 15px;">📁</div>
+                    <div class="upload-text" style="font-size: 1.1em; color: #2c3e50; margin-bottom: 10px;">Drag & drop Excel/CSV file here</div>
+                    <div class="upload-or" style="margin: 15px 0; color: #999;">OR</div>
+                    <button class="btn-secondary" onclick="document.getElementById('fileInput').click()">Browse Files</button>
+                    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display: none;" onchange="handleFileSelect(event)">
+                    <div class="upload-info" style="margin-top: 15px; color: #888; font-size: 0.9em;">Supported: .xlsx, .xls, .csv | Max size: 5MB</div>
+                </div>
+                <div id="fileSelectedInfo" class="file-selected-info hidden"></div>
+            </div>
+
+            <!-- Step 3: Preview & Validate -->
+            <div class="upload-step hidden" id="previewStep" style="margin-bottom: 25px; background: white; padding: 20px; border-radius: 10px;">
+                <h5>Step 3: Preview & Validate</h5>
+                <div id="previewContent"></div>
+            </div>
+
+            <!-- Step 4: Confirm & Upload -->
+            <div class="upload-step hidden" id="confirmStep" style="background: white; padding: 20px; border-radius: 10px;">
+                <h5>Step 4: Confirm & Upload</h5>
+                <div class="btn-group">
+                    <button class="btn-secondary" onclick="switchStudentUpTab('upload')">Cancel</button>
+                    <button class="btn-primary" id="confirmUploadBtn" onclick="confirmBulkUpload()" disabled>✅ Upload Students</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Render Promote Tab
+async function renderPromoteTab(container) {
+    const client = window.supabaseClient.getClient();
+
+    // Get all students grouped by grade
+    const { data: students } = await client
+        .from('students')
+        .select('*')
+        .eq('status', 'active')
+        .order('class');
+
+    // Group students by grade
+    const studentsByGrade = {};
+    students?.forEach(student => {
+        const grade = parseInt(student.class.match(/\\d+/)?.[0] || 0);
+        if (!studentsByGrade[grade]) {
+            studentsByGrade[grade] = [];
+        }
+        studentsByGrade[grade].push(student);
+    });
+
+    const grades = Object.keys(studentsByGrade).sort((a, b) => parseInt(a) - parseInt(b));
+
+    container.innerHTML = `
+        <div class="card" style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border: 2px solid #4caf50;">
+            <h4 style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 1.5em;">📚</span>
+                Promote Students to Next Grade
+            </h4>
+            <p style="color: #2e7d32; margin-bottom: 20px;">
+                Automatically promote ALL students from one grade to the next (e.g., Grade 6 → Grade 7)
+            </p>
+
+            <div style="background: white; padding: 20px; border-radius: 10px;">
+                <div class="form-group">
+                    <label for="promoteGradeSelect">Select Grade to Promote</label>
+                    <select id="promoteGradeSelect" onchange="showPromotionPreview()">
+                        <option value="">-- Select Grade --</option>
+                        ${grades.filter(g => parseInt(g) < 10).map(g =>
+                            `<option value="${g}">Grade ${g} (${studentsByGrade[g].length} students)</option>`
+                        ).join('')}
+                    </select>
+                </div>
+
+                <div id="promotionPreview" style="display: none; margin-top: 20px;">
+                    <h5>Promotion Preview:</h5>
+                    <div id="promotionDetails" style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0;"></div>
+
+                    <div style="margin-top: 20px;">
+                        <label style="display: flex; align-items: center; cursor: pointer; margin-bottom: 15px;">
+                            <input type="checkbox" id="confirmPromotionCheckbox" style="margin-right: 10px;">
+                            <strong>I understand that this will promote all students in the selected grade</strong>
+                        </label>
+
+                        <button onclick="executePromotion()" class="btn-primary" style="padding: 12px 30px;">
+                            ⬆️ Promote All Students
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    window.studentPromotionData = studentsByGrade;
+}
+
+// Render Shuffle Tab
+async function renderShuffleTab(container) {
+    const client = window.supabaseClient.getClient();
+
+    const { data: classes } = await client
+        .from('classes')
+        .select('name, grade')
+        .eq('is_active', true)
+        .order('grade');
+
+    const grades = [...new Set(classes?.map(c => c.grade))].sort();
+
+    container.innerHTML = `
+        <div class="card" style="background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); border: 2px solid #ff9800;">
+            <h4 style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 1.5em;">🔀</span>
+                Shuffle Students Across Sections
+            </h4>
+            <p style="color: #e65100; margin-bottom: 20px;">
+                Redistribute students across sections within the same grade to balance class sizes
+            </p>
+
+            <div style="background: white; padding: 20px; border-radius: 10px;">
+                <div class="form-group">
+                    <label for="shuffleGradeSelect">Select Grade to Shuffle</label>
+                    <select id="shuffleGradeSelect" onchange="showShufflePreview()">
+                        <option value="">-- Select Grade --</option>
+                        ${grades.map(g => `<option value="${g}">Grade ${g}</option>`).join('')}
+                    </select>
+                </div>
+
+                <div id="shufflePreview" style="display: none; margin-top: 20px;">
+                    <h5>Shuffle Preview:</h5>
+                    <div id="shuffleDetails" style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0;"></div>
+
+                    <div style="margin-top: 20px;">
+                        <label style="display: flex; align-items: center; cursor: pointer; margin-bottom: 15px;">
+                            <input type="checkbox" id="confirmShuffleCheckbox" style="margin-right: 10px;">
+                            <strong>I understand that this will randomly redistribute students across sections</strong>
+                        </label>
+
+                        <button onclick="executeShuffle()" class="btn-primary" style="padding: 12px 30px;">
+                            🔀 Shuffle Students
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Show promotion preview
+window.showPromotionPreview = async function() {
+    const grade = document.getElementById('promoteGradeSelect').value;
+    if (!grade) {
+        document.getElementById('promotionPreview').style.display = 'none';
+        return;
+    }
+
+    const students = window.studentPromotionData[grade] || [];
+    const nextGrade = parseInt(grade) + 1;
+
+    const preview = document.getElementById('promotionPreview');
+    const details = document.getElementById('promotionDetails');
+
+    details.innerHTML = `
+        <p style="margin: 0;"><strong>Grade ${grade}</strong> → <strong>Grade ${nextGrade}</strong></p>
+        <p style="margin: 10px 0 0 0;">Total students to promote: <strong>${students.length}</strong></p>
+        <p style="margin: 10px 0 0 0; color: #666;">Students will maintain their sections (e.g., 6A → 7A, 6B → 7B)</p>
+    `;
+
+    preview.style.display = 'block';
+};
+
+// Execute promotion
+window.executePromotion = async function() {
+    if (!document.getElementById('confirmPromotionCheckbox').checked) {
+        showModal('Error', 'Please confirm that you understand the changes before proceeding.', 'error');
+        return;
+    }
+
+    const grade = document.getElementById('promoteGradeSelect').value;
+    const students = window.studentPromotionData[grade] || [];
+    const nextGrade = parseInt(grade) + 1;
+
+    if (!confirm(`Are you sure you want to promote ${students.length} students from Grade ${grade} to Grade ${nextGrade}?`)) {
+        return;
+    }
+
+    try {
+        showLoading();
+        const client = window.supabaseClient.getClient();
+
+        let successCount = 0;
+        for (const student of students) {
+            const currentClass = student.class;
+            const section = currentClass.slice(-1); // Get section letter (A, B, C, etc.)
+            const newClass = `${nextGrade}${section}`;
+
+            const { error } = await client
+                .from('students')
+                .update({ class: newClass })
+                .eq('id', student.id);
+
+            if (!error) successCount++;
+        }
+
+        hideLoading();
+        showModal('Success', `Successfully promoted ${successCount} students from Grade ${grade} to Grade ${nextGrade}!`, 'success');
+        renderPromoteTab(document.getElementById('tabContent'));
+    } catch (error) {
+        hideLoading();
+        showModal('Error', `Failed to promote students: ${error.message}`, 'error');
+    }
+};
+
+// Show shuffle preview
+window.showShufflePreview = async function() {
+    const grade = document.getElementById('shuffleGradeSelect').value;
+    if (!grade) {
+        document.getElementById('shufflePreview').style.display = 'none';
+        return;
+    }
+
+    const client = window.supabaseClient.getClient();
+
+    const { data: students } = await client
+        .from('students')
+        .select('*')
+        .like('class', `${grade}%`)
+        .eq('status', 'active');
+
+    const preview = document.getElementById('shufflePreview');
+    const details = document.getElementById('shuffleDetails');
+
+    details.innerHTML = `
+        <p style="margin: 0;"><strong>Grade ${grade}</strong></p>
+        <p style="margin: 10px 0 0 0;">Total students to shuffle: <strong>${students?.length || 0}</strong></p>
+        <p style="margin: 10px 0 0 0; color: #666;">Students will be randomly distributed across all sections in Grade ${grade}</p>
+    `;
+
+    preview.style.display = 'block';
+    window.shuffleStudentsData = students;
+};
+
+// Execute shuffle
+window.executeShuffle = async function() {
+    if (!document.getElementById('confirmShuffleCheckbox').checked) {
+        showModal('Error', 'Please confirm that you understand the changes before proceeding.', 'error');
+        return;
+    }
+
+    const grade = document.getElementById('shuffleGradeSelect').value;
+    const students = window.shuffleStudentsData || [];
+
+    if (!confirm(`Are you sure you want to shuffle ${students.length} students in Grade ${grade}?`)) {
+        return;
+    }
+
+    try {
+        showLoading();
+        const client = window.supabaseClient.getClient();
+
+        // Get all sections for this grade
+        const { data: classes } = await client
+            .from('classes')
+            .select('name')
+            .eq('grade', parseInt(grade))
+            .eq('is_active', true);
+
+        const sections = classes.map(c => c.name);
+
+        // Shuffle students
+        const shuffled = [...students].sort(() => Math.random() - 0.5);
+        const studentsPerSection = Math.ceil(shuffled.length / sections.length);
+
+        let successCount = 0;
+        for (let i = 0; i < shuffled.length; i++) {
+            const sectionIndex = Math.floor(i / studentsPerSection);
+            const newClass = sections[sectionIndex] || sections[sections.length - 1];
+
+            const { error } = await client
+                .from('students')
+                .update({ class: newClass })
+                .eq('id', shuffled[i].id);
+
+            if (!error) successCount++;
+        }
+
+        hideLoading();
+        showModal('Success', `Successfully shuffled ${successCount} students in Grade ${grade}!`, 'success');
+        renderShuffleTab(document.getElementById('tabContent'));
+    } catch (error) {
+        hideLoading();
+        showModal('Error', `Failed to shuffle students: ${error.message}`, 'error');
+    }
+};
+
 async function renderHolidays() {
     const contentArea = document.getElementById('contentArea');
     const client = window.supabaseClient.getClient();
@@ -14439,6 +14888,138 @@ async function renderStudentAnalysis() {
 }
 
 // END PROMPT 3 - NEW CODE
+
+// PDF Report Card Generation Function
+window.downloadReportCardPDF = function(cardId, studentName, studentClass, term, academicYear, percentage, grade, remarks, generatedDate) {
+    try {
+        // Access jsPDF from window
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Set up colors
+        const primaryColor = [102, 126, 234]; // Purple
+        const secondaryColor = [118, 75, 162]; // Dark purple
+        const textColor = [44, 62, 80]; // Dark gray
+
+        // Add header with school branding
+        doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.rect(0, 0, 210, 40, 'F');
+
+        // School name
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(22);
+        doc.setFont(undefined, 'bold');
+        doc.text('Delhi Public School, Nadergul', 105, 15, { align: 'center' });
+
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'normal');
+        doc.text('Excellence in Education | Empowering Future Leaders', 105, 25, { align: 'center' });
+
+        doc.setFontSize(16);
+        doc.setFont(undefined, 'bold');
+        doc.text('REPORT CARD', 105, 35, { align: 'center' });
+
+        // Student Information Section
+        doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text('Student Information', 20, 55);
+
+        // Draw a box for student info
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.5);
+        doc.rect(20, 60, 170, 35);
+
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(11);
+        doc.text(`Student Name:`, 25, 70);
+        doc.setFont(undefined, 'bold');
+        doc.text(studentName, 70, 70);
+
+        doc.setFont(undefined, 'normal');
+        doc.text(`Class:`, 25, 80);
+        doc.setFont(undefined, 'bold');
+        doc.text(studentClass, 70, 80);
+
+        doc.setFont(undefined, 'normal');
+        doc.text(`Academic Year:`, 25, 90);
+        doc.setFont(undefined, 'bold');
+        doc.text(academicYear, 70, 90);
+
+        // Term and Performance Section
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(12);
+        doc.text('Academic Performance', 20, 110);
+
+        // Draw box for performance
+        doc.rect(20, 115, 170, 50);
+
+        // Split into two columns for percentage and grade
+        doc.setFontSize(11);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Term:`, 25, 125);
+        doc.setFont(undefined, 'bold');
+        doc.text(term, 70, 125);
+
+        // Overall Percentage (left column)
+        doc.setFont(undefined, 'normal');
+        doc.text('Overall Percentage:', 25, 140);
+        doc.setFontSize(24);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.text(`${percentage}%`, 25, 155);
+
+        // Overall Grade (right column)
+        doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+        doc.setFontSize(11);
+        doc.setFont(undefined, 'normal');
+        doc.text('Overall Grade:', 120, 140);
+        doc.setFontSize(24);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+        doc.text(grade, 120, 155);
+
+        // Remarks Section
+        if (remarks && remarks !== 'null' && remarks !== '') {
+            doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text('Teacher Remarks', 20, 180);
+
+            doc.rect(20, 185, 170, 30);
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            const remarksLines = doc.splitTextToSize(remarks, 160);
+            doc.text(remarksLines, 25, 193);
+        }
+
+        // Footer
+        const footerY = remarks && remarks !== 'null' && remarks !== '' ? 230 : 200;
+        doc.setFontSize(9);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Generated on: ${generatedDate}`, 20, footerY);
+        doc.text('CampusCore - Smart Campus Management System', 105, footerY, { align: 'center' });
+
+        // Signature section
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.3);
+        doc.line(25, footerY + 20, 80, footerY + 20);
+        doc.line(130, footerY + 20, 185, footerY + 20);
+
+        doc.setFontSize(9);
+        doc.text("Class Teacher's Signature", 25, footerY + 25);
+        doc.text("Principal's Signature", 130, footerY + 25);
+
+        // Save the PDF
+        const fileName = `ReportCard_${studentName.replace(/\\s+/g, '_')}_${term}_${academicYear}.pdf`;
+        doc.save(fileName);
+
+        showModal('Success', 'Report card downloaded successfully!', 'success');
+    } catch (error) {
+        console.error('Error generating PDF:', error);
+        showModal('Error', 'Failed to generate PDF. Please try again.', 'error');
+    }
+};
 
 // Initialize app on page load
 window.addEventListener('DOMContentLoaded', () => {
